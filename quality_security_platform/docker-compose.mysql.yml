@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: qsp_mysql
+    environment:
+      MYSQL_DATABASE: qsp
+      MYSQL_USER: qsp
+      MYSQL_PASSWORD: qsp123
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - qsp_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: qsp_redis
+    networks:
+      - qsp_network
+
+  web:
+    build: .
+    container_name: qsp_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.mysql
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - qsp_network
+
+volumes:
+  mysql_data:
+
+networks:
+  qsp_network:
+    driver: bridge
