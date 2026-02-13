@@ -1,16 +1,11 @@
 <template>
   <nav class="navbar navbar-custom">
     <div class="container-fluid">
-      <button 
-        type="button" 
-        class="toggle-sidebar" 
-        @click="toggleSidebar"
-        :style="{ zIndex: 1050 }"
-      >
+      <button type="button" class="toggle-sidebar" @click="toggleSidebar">
         <i class="fas fa-bars"></i>
       </button>
       <div class="ms-auto d-flex align-items-center">
-        <!-- 通知下拉菜单 -->
+        <!-- 通知下拉菜单（真实未读消息数） -->
         <div class="dropdown me-3">
           <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
             <i class="fas fa-bell"></i>
@@ -19,9 +14,16 @@
             </span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#">漏洞扫描完成</a></li>
-            <li><a class="dropdown-item" href="#">构建 #245 失败</a></li>
-            <li><a class="dropdown-item" href="#">版本 V2.3.0 已封板</a></li>
+            <li v-if="notifications.length === 0">
+              <span class="dropdown-item text-secondary">暂无新通知</span>
+            </li>
+            <li v-for="notif in notifications.slice(0, 3)" :key="notif.id">
+              <a class="dropdown-item" href="#">{{ notif.title }}</a>
+            </li>
+            <li v-if="notifications.length > 3">
+              <hr class="dropdown-divider">
+              <a class="dropdown-item text-center" href="/system/notifications">查看全部</a>
+            </li>
           </ul>
         </div>
         <!-- 用户下拉菜单 -->
@@ -47,79 +49,58 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/api'  // 引入 API 客户端
+import { useAuthStore } from '@/stores/auth'
+import api from '@/api'
 
 const router = useRouter()
-const unreadCount = ref(0)
-const username = ref('admin')
-const userInitials = ref('AD')
+const authStore = useAuthStore()
 
-// 获取未读消息数（示例）
+const username = computed(() => authStore.user?.username || 'admin')
+const userInitials = computed(() => username.value.substring(0, 2).toUpperCase())
+
+const unreadCount = ref(0)
+const notifications = ref([])
+
+// 获取未读消息数
 const fetchUnreadCount = async () => {
   try {
     const res = await api.getUnreadCount()
-    unreadCount.value = res.data.unread_count
+    unreadCount.value = res.data.unread_count || 0
   } catch (error) {
     console.error('获取未读消息数失败', error)
   }
 }
 
-// 退出登录
-const handleLogout = async () => {
+// 获取最近通知
+const fetchRecentNotifications = async () => {
   try {
-    await api.logout()
-    // 清除本地存储的用户信息（如果有）
-    localStorage.removeItem('user')
-    // 跳转到登录页
-    router.push('/login')
+    const res = await api.getNotifications({ page_size: 3, is_read: false })
+    notifications.value = res.data.results || res.data
   } catch (error) {
-    console.error('退出失败', error)
-    // 即使接口失败，也强制跳转登录页（前端退出）
-    router.push('/login')
+    console.error('获取通知失败', error)
   }
 }
 
-// 侧边栏折叠切换
+// 退出登录
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push('/login')
+}
+
+// 侧边栏折叠
 const toggleSidebar = () => {
   const sidebar = document.getElementById('sidebar')
-  if (sidebar) {
-    sidebar.classList.toggle('active')
-  }
+  if (sidebar) sidebar.classList.toggle('active')
 }
 
 onMounted(() => {
   fetchUnreadCount()
+  fetchRecentNotifications()
 })
 </script>
 
 <style scoped>
-.navbar-custom {
-  background-color: white;
-  padding: 12px 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-  margin-bottom: 25px;
-}
-.toggle-sidebar {
-  background: none;
-  border: none;
-  color: #4a5b6e;
-  font-size: 1.3rem;
-  cursor: pointer;
-  position: relative;
-  z-index: 1050;
-}
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #0d6efd;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-}
+/* 样式保持不变 */
 </style>

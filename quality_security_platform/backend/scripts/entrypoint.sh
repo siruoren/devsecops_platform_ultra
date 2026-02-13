@@ -8,6 +8,7 @@ if [ "$DJANGO_SETTINGS_MODULE" = "config.settings.development" ]; then
     find /app/apps -path "*/migrations/*.py" -not -name "__init__.py" -delete
 fi
 
+
 # ========== 重新生成迁移文件 ==========
 python manage.py makemigrations users --noinput
 python manage.py makemigrations rbac --noinput
@@ -31,6 +32,8 @@ if not User.objects.filter(username='admin').exists():
 EOF
 
 # ========== 收集静态文件 ==========
+    # 确保静态文件目录存在
+mkdir -p /app/static
 python manage.py collectstatic --noinput
 
 exec "$@"
