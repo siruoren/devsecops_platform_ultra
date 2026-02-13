@@ -8,9 +8,7 @@ services:
       - qsp_network
 
   backend:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
+    build: ./backend
     container_name: qsp_backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -40,9 +38,7 @@ services:
       - qsp_network
 
   celery_worker:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile.celery
+    build: ./backend
     container_name: qsp_celery_worker
     command: celery -A config worker --loglevel=info
     volumes:
