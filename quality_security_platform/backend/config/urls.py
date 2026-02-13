@@ -2,10 +2,12 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views  # 导入认证视图
+from django.views.generic import RedirectView
+from django.contrib.staticfiles.views import serve
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from django.views.generic import RedirectView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -15,12 +17,20 @@ schema_view = get_schema_view(
         contact=openapi.Contact(email="admin@example.com"),
     ),
     public=True,
-    permission_classes=[permissions.AllowAny],
+    permission_classes=[permissions.AllowAny],  # 公开文档，无需登录
 )
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/swagger/', permanent=False)),  # 重定向到swagger文档
+    # 根路径重定向到 Swagger 文档
+    path('', RedirectView.as_view(url='/swagger/', permanent=False)),
+
+    # 后台管理
     path('admin/', admin.site.urls),
+
+    # 认证相关：注销（Logout）
+    path('logout/', auth_views.LogoutView.as_view(next_page='/swagger/'), name='logout'),
+
+    # API 路由
     path('api/users/', include('apps.users.urls')),
     path('api/projects/', include('apps.projects.urls')),
     path('api/versions/', include('apps.versions.urls')),
@@ -29,7 +39,12 @@ urlpatterns = [
     path('api/rbac/', include('apps.rbac.urls')),
     path('api/cicd/', include('apps.ci_cd.urls')),
     path('api/risk/', include('apps.risk.urls')),
+
+    # Swagger 文档
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+
+    # favicon 图标
+    re_path(r'^favicon\.ico$', serve, {'path': 'favicon.ico'}),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
