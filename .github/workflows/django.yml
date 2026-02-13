@@ -23,10 +23,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install Dependencies
       run: |
-        cd quality_security_platform;
+        cd quality_security_platform/backend;
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Run Tests
       run: |
-        cd quality_security_platform;
+        cd quality_security_platform/backend;
         python manage.py test
