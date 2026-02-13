@@ -13,5 +13,4 @@ export default {
   deleteUser(id) { return apiClient.delete(`/users/${id}/`) },
   // 项目
   getProjects() { return apiClient.get('/projects/') },
-  // ... 其他 API
 }

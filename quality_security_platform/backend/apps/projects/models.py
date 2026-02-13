@@ -2,10 +2,9 @@ from django.db import models
 from apps.users.models import User
 class Environment(models.Model):
     name = models.CharField('环境名', max_length=100, unique=True)
-    server_ips = models.TextField('服务器IP', help_text='多个IP用逗号分隔')
+    server_ips = models.TextField('服务器IP')
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta: db_table = 'environments'
-    def __str__(self): return self.name
 class Project(models.Model):
     name = models.CharField('应用名', max_length=200, unique=True)
     git_repo = models.URLField('Git仓库地址')

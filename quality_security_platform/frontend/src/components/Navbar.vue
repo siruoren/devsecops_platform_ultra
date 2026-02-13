@@ -1,10 +1,16 @@
 <template>
   <nav class="navbar navbar-custom">
     <div class="container-fluid">
-      <button type="button" class="toggle-sidebar" @click="toggleSidebar">
+      <button 
+        type="button" 
+        class="toggle-sidebar" 
+        @click="toggleSidebar"
+        :style="{ zIndex: 1050 }"  <!-- 确保按钮在顶层 -->
+      >
         <i class="fas fa-bars"></i>
       </button>
       <div class="ms-auto d-flex align-items-center">
+        <!-- 通知下拉菜单 -->
         <div class="dropdown me-3">
           <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
             <i class="fas fa-bell"></i>
@@ -18,6 +24,7 @@
             <li><a class="dropdown-item" href="#">版本 V2.3.0 已封板</a></li>
           </ul>
         </div>
+        <!-- 用户下拉菜单 -->
         <div class="dropdown">
           <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
             <span class="avatar me-2">AD</span>
@@ -38,7 +45,9 @@
 <script setup>
 const toggleSidebar = () => {
   const sidebar = document.getElementById('sidebar')
-  sidebar.classList.toggle('active')
+  if (sidebar) {
+    sidebar.classList.toggle('active')
+  }
 }
 </script>
 
@@ -55,6 +64,9 @@ const toggleSidebar = () => {
   border: none;
   color: #4a5b6e;
   font-size: 1.3rem;
+  cursor: pointer;
+  position: relative;
+  z-index: 1050;  /* 确保不会被其他元素遮挡 */
 }
 .avatar {
   width: 36px;

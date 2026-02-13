@@ -10,7 +10,7 @@
           <i :class="item.icon"></i> {{ item.name }}
         </router-link>
       </li>
-      <hr>
+      <hr style="border-color:#2d3a4f; margin:20px 10px;">
       <li>
         <router-link to="/login">
           <i class="fas fa-sign-out-alt"></i> 退出
@@ -25,7 +25,11 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+// isCollapsed 由 Navbar 的 toggleSidebar 切换类名控制，此处只需监听类名变化
 const isCollapsed = ref(false)
+
+// 可选：监听 sidebar 类名变化，同步 isCollapsed 状态
+// 但此处不需要，因为样式切换直接基于类名
 
 const menuItems = [
   { path: '/', name: '仪表盘', icon: 'fas fa-tachometer-alt' },
@@ -58,6 +62,13 @@ const menuItems = [
 .sidebar-header h3 {
   color: #fff;
   font-weight: 600;
+  font-size: 1.5rem;
+  margin-bottom: 0;
+  letter-spacing: 1px;
+}
+.sidebar-header small {
+  color: #b0c4ce;
+  font-size: 0.8rem;
 }
 .components {
   padding: 20px 0;
@@ -66,6 +77,7 @@ const menuItems = [
   padding: 8px 20px;
   margin: 4px 8px;
   border-radius: 8px;
+  transition: 0.2s;
 }
 .components li:hover {
   background: #2d3a4f;
@@ -78,10 +90,12 @@ const menuItems = [
   color: #ddd;
   text-decoration: none;
   display: block;
+  font-size: 1rem;
 }
 .components li a i {
   margin-right: 12px;
   width: 20px;
+  text-align: center;
 }
 .components li.active a {
   color: white;

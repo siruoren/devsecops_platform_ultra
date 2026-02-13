@@ -3,10 +3,15 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1 class="page-title">仪表盘</h1>
       <div>
-        <span class="badge bg-light text-dark me-2"><i class="far fa-calendar-alt me-1"></i>{{ currentDate }}</span>
-        <span class="badge bg-light text-dark"><i class="far fa-clock me-1"></i>{{ currentTime }}</span>
+        <span class="badge bg-light text-dark me-2">
+          <i class="far fa-calendar-alt me-1"></i>{{ currentDate }}
+        </span>
+        <span class="badge bg-light text-dark">
+          <i class="far fa-clock me-1"></i>{{ currentTime }}
+        </span>
       </div>
     </div>
+
     <!-- 统计卡片 -->
     <div class="row g-4 mb-5">
       <div v-for="stat in stats" :key="stat.title" class="col-md-3">
@@ -15,7 +20,9 @@
             <div>
               <span class="text-secondary">{{ stat.title }}</span>
               <h2 class="mt-2 mb-0 fw-bold">{{ stat.value }}</h2>
-              <small :class="`text-${stat.trendColor}`"><i :class="`fas fa-arrow-${stat.trendIcon}`"></i> {{ stat.trend }}</small>
+              <small :class="`text-${stat.trendColor}`">
+                <i :class="`fas fa-arrow-${stat.trendIcon}`"></i> {{ stat.trend }}
+              </small>
             </div>
             <div class="bg-opacity-10 p-3 rounded-3" :style="{ backgroundColor: stat.bgColor }">
               <i :class="`fas fa-${stat.icon} fa-2x`" :style="{ color: stat.color }"></i>
@@ -24,6 +31,7 @@
         </div>
       </div>
     </div>
+
     <!-- 风险趋势 & 最近构建 -->
     <div class="row g-4">
       <div class="col-lg-8">
@@ -32,14 +40,18 @@
             <h5 class="section-title mb-0">风险趋势 (订单服务)</h5>
             <span class="badge bg-light text-dark">近7天</span>
           </div>
-          <canvas id="riskChart" style="height: 300px; width: 100%;"></canvas>
+          <!-- ✅ 修复：固定图表容器高度 -->
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="riskChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="col-lg-4">
         <div class="card p-4">
           <h5 class="section-title">最新告警</h5>
           <div class="list-group list-group-flush">
-            <div v-for="alert in alerts" :key="alert.title" class="list-group-item px-0 border-0 d-flex justify-content-between align-items-start">
+            <div v-for="alert in alerts" :key="alert.title" 
+                 class="list-group-item px-0 border-0 d-flex justify-content-between align-items-start">
               <div>
                 <span :class="`badge bg-${alert.level} mb-1`">{{ alert.levelName }}</span>
                 <div class="fw-semibold">{{ alert.title }}</div>
@@ -51,7 +63,8 @@
           <hr>
           <h5 class="section-title mt-3">最近构建</h5>
           <div class="list-group list-group-flush">
-            <div v-for="build in recentBuilds" :key="build.id" class="list-group-item px-0 border-0 d-flex justify-content-between">
+            <div v-for="build in recentBuilds" :key="build.id" 
+                 class="list-group-item px-0 border-0 d-flex justify-content-between">
               <span>{{ build.name }}</span>
               <span :class="`badge bg-${build.statusColor}`">{{ build.status }}</span>
             </div>
@@ -89,7 +102,10 @@ const recentBuilds = ref([
 ])
 
 onMounted(() => {
-  const ctx = document.getElementById('riskChart').getContext('2d')
+  const canvas = document.getElementById('riskChart')
+  if (!canvas) return
+  
+  const ctx = canvas.getContext('2d')
   new Chart(ctx, {
     type: 'line',
     data: {
@@ -105,8 +121,11 @@ onMounted(() => {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
-      plugins: { tooltip: { mode: 'index' }, legend: { display: false } }
+      maintainAspectRatio: true,  // ✅ 保持宽高比
+      plugins: {
+        tooltip: { mode: 'index' },
+        legend: { display: false }
+      }
     }
   })
 })
@@ -114,6 +133,6 @@ onMounted(() => {
 
 <style scoped>
 .page-title { font-size: 1.75rem; font-weight: 600; color: #1e2a41; }
-.section-title { font-size: 1.25rem; font-weight: 600; color: #2c3e50; }
+.section-title { font-size: 1.25rem; font-weight: 600; color: #2c3e50; margin-bottom: 1rem; }
 .stat-card { border-left-width: 4px; border-left-style: solid; border-radius: 12px; }
 </style>

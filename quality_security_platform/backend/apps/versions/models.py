@@ -17,6 +17,4 @@ class VersionRegistration(models.Model):
     created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    class Meta:
-        db_table = 'version_registrations'
-        unique_together = ('release_version', 'project')
+    class Meta: db_table = 'version_registrations'

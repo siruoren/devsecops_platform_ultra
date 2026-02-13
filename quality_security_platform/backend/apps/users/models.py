@@ -12,9 +12,4 @@ class User(AbstractUser):
     updated_at = models.DateTimeField('更新时间', auto_now=True)
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
-    class Meta:
-        db_table = 'users'
-        verbose_name = '用户'
-        verbose_name_plural = '用户'
-    def __str__(self):
-        return self.username
+    class Meta: db_table = 'users'
