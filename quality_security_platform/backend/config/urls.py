@@ -9,10 +9,11 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
+
 schema_view = get_schema_view(
     openapi.Info(
         title="质量安全平台 API",
-        default_version='v5.0',
+        default_version='v0.1',
         description="QSP 后端接口文档",
         contact=openapi.Contact(email="admin@example.com"),
     ),
@@ -28,8 +29,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # 认证相关：注销（Logout）
-    path('logout/', auth_views.LogoutView.as_view(next_page='/swagger/'), name='logout'),
-
+    path('logout/', auth_views.LogoutView.as_view(next_page='/swagger/')),
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/swagger/')),
     # API 路由
     path('api/users/', include('apps.users.urls')),
     path('api/projects/', include('apps.projects.urls')),
