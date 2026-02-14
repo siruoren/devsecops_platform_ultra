@@ -1,50 +1,43 @@
-from rest_framework import viewsets, filters
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import status
-from django.utils import timezone
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import FileSystemStorage
+import os
+from django.conf import settings
+from rest_framework import viewsets
 from .models import Notification
 from .serializers import NotificationSerializer
 from apps.base.viewsets import BaseModelViewSet
 
-
 class NotificationViewSet(BaseModelViewSet):
-    """
-    通知管理：支持过滤、搜索、排序、批量删除（仅自己的通知）
-    """
+    """通知管理视图集"""
+    queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['is_read']
-    search_fields = ['title', 'content']
-    ordering_fields = ['id', 'created_at']
-
+    
     def get_queryset(self):
-        # 仅返回当前用户的通知
-        return Notification.objects.filter(recipient=self.request.user)
+        user = self.request.user
+        if user.is_superuser:
+            return Notification.objects.all()
+        return Notification.objects.filter(recipient=user)
 
-    @action(detail=True, methods=['post'])
-    def mark_as_read(self, request, pk=None):
-        notification = self.get_object()
-        notification.is_read = True
-        notification.read_at = timezone.now()
-        notification.save()
-        return Response({'status': 'ok'})
-
-    @action(detail=False, methods=['get'])
-    def unread_count(self, request):
-        count = self.get_queryset().filter(is_read=False).count()
-        return Response({'unread_count': count})
-
-    @action(detail=False, methods=['delete'])
-    def bulk_delete(self, request):
-        """
-        批量删除自己的通知（仅已读通知，或所有通知）
-        """
-        ids = request.data.get('ids', [])
-        if not ids:
-            return Response({'detail': '请提供要删除的ID列表'}, status=status.HTTP_400_BAD_REQUEST)
-        # 仅删除属于当前用户的通知，防止越权
-        qs = self.get_queryset().filter(id__in=ids)
-        deleted, _ = qs.delete()
-        return Response({'deleted': deleted}, status=status.HTTP_200_OK)
+@csrf_exempt
+def upload_company_logo(request):
+    """上传企业图标"""
+    if request.method == 'POST' and request.FILES.get('logo'):
+        logo = request.FILES['logo']
+        
+        # 确保上传目录存在
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'logos')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 保存文件
+        fs = FileSystemStorage(location=upload_dir)
+        filename = fs.save(logo.name, logo)
+        
+        # 更新 CONSTANCE 配置
+        from constance import config
+        config.COMPANY_LOGO = os.path.join('logos', filename)
+        
+        return JsonResponse({'status': 'success', 'message': '企业图标上传成功', 'logo_url': os.path.join(settings.MEDIA_URL, 'logos', filename)})
+    
+    return JsonResponse({'status': 'error', 'message': '上传失败，请检查文件'})

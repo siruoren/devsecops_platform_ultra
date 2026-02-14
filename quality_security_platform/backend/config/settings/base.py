@@ -134,6 +134,11 @@ CONSTANCE_CONFIG = {
     'SENDER_EMAIL': ('noreply@example.com', '发送人邮箱'),
     'SONAR_HOST_URL': ('http://localhost:9000', 'SonarQube地址'),
     'SONAR_TOKEN': ('', 'SonarQube Token'),
+    # 主题设置
+    'LOGIN_THEME': ('default', '登录页面主题'),
+    'HOME_THEME': ('default', '首页主题'),
+    # 企业图标
+    'COMPANY_LOGO': ('', '企业图标路径'),
 }
 
 # SimpleUI 配置
@@ -282,9 +287,11 @@ SIMPLEUI_CONFIG = {
 }
 
 # SimpleUI 主题设置
-SIMPLEUI_DEFAULT_THEME = 'admin.lte.css'
-# 禁用自定义 logo，使用默认图标
-SIMPLEUI_LOGO = None
+import os
+from constance import config
+SIMPLEUI_DEFAULT_THEME = config.HOME_THEME if hasattr(config, 'HOME_THEME') else 'admin.lte.css'
+# 使用 CONSTANCE 中配置的企业图标
+SIMPLEUI_LOGO = os.path.join('/media/', config.COMPANY_LOGO) if hasattr(config, 'COMPANY_LOGO') and config.COMPANY_LOGO else None
 SIMPLEUI_HOME_INFO = False
 SIMPLEUI_ANALYSIS = False
 
