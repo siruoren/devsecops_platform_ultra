@@ -46,6 +46,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 动态更新Admin站点设置的中间件
+    'config.middleware.dynamic_admin_settings.DynamicAdminSettingsMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -134,14 +136,18 @@ CONSTANCE_CONFIG = {
     'SENDER_EMAIL': ('noreply@example.com', '发送人邮箱'),
     'SONAR_HOST_URL': ('http://localhost:9000', 'SonarQube地址'),
     'SONAR_TOKEN': ('', 'SonarQube Token'),
-    # 主题设置
-    'LOGIN_THEME': ('default', '登录页面主题'),
-    'HOME_THEME': ('default', '首页主题'),
+    # 网站标题设置
+    'SITE_HEADER': ('质量安全平台', '登录页面标题'),
+    'SITE_TITLE': ('质量安全平台', '浏览器标签标题'),
+    'INDEX_TITLE': ('系统管理', '首页标题'),
     # 企业图标
     'COMPANY_LOGO': ('', '企业图标路径'),
 }
 
 # SimpleUI 配置
+# 注意：SIMPLEUI_LOGO 需要在 Django 应用加载后设置
+# 我们将在 urls.py 中处理这个问题
+
 SIMPLEUI_CONFIG = {
     'system_keep': True,
     'menu_display': ['用户与权限', '项目管理', '版本管理', 'CI/CD管理', '风险管理', '系统管理', '其他'],
@@ -259,6 +265,11 @@ SIMPLEUI_CONFIG = {
                     'name': '动态配置',
                     'url': '/admin/constance/config/',
                     'icon': 'fas fa-sliders-h'
+                },
+                {
+                    'name': '网站设置',
+                    'url': '/logo-upload/',
+                    'icon': 'fas fa-image'
                 }
             ]
         },

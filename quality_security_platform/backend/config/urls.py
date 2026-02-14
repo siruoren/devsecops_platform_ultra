@@ -13,7 +13,7 @@ from django.contrib.staticfiles.views import serve
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from apps.system.views import upload_company_logo
+from apps.system.views import upload_company_logo, save_site_settings, reset_company_logo, get_site_settings
 
 
 schema_view = get_schema_view(
@@ -35,6 +35,12 @@ urlpatterns = [
 
     # 企业图标上传
     path('upload-logo/', upload_company_logo, name='upload_company_logo'),
+    # 保存网站设置
+    path('save-site-settings/', save_site_settings, name='save_site_settings'),
+    # 获取网站设置
+    path('get-site-settings/', get_site_settings, name='get_site_settings'),
+    # 重置企业图标
+    path('reset-logo/', reset_company_logo, name='reset_company_logo'),
     # 企业图标上传页面
     path('logo-upload/', TemplateView.as_view(template_name='logo_upload.html'), name='logo_upload_page'),
 
@@ -74,3 +80,21 @@ urlpatterns = [
     # 静态文件服务（开发环境）
     path('static/<path:path>', static_serve),
 ]
+
+# 为 media 目录提供服务（开发环境）
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# 在 Django 应用加载后设置 SIMPLEUI_LOGO
+try:
+    from django.conf import settings
+    from constance import config
+    
+    # 动态设置 SIMPLEUI_LOGO
+    company_logo = getattr(config, 'COMPANY_LOGO', '')
+    if company_logo:
+        settings.SIMPLEUI_LOGO = f'/media/{company_logo}'
+    else:
+        settings.SIMPLEUI_LOGO = None
+except Exception as e:
+    print(f"设置 SIMPLEUI_LOGO 失败: {e}")
