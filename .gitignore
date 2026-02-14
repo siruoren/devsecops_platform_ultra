@@ -3,3 +3,4 @@
 __pycache__
 **/migrations/**.py
 **/migrations/**.pyc
+quality_security_platform/backend/db.sqlite3

@@ -23,6 +23,8 @@ INSTALLED_APPS = [
     'corsheaders',
     # 'django-filter',
     'drf_yasg',
+    'constance',
+    'constance.backends.database',
     # 本地应用
     'web',
     'apps.users',
