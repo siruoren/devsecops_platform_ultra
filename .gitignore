@@ -1,6 +1,6 @@
 **.DS_Store
 **.pyc
-__pycache__
-**/migrations/**.py
-**/migrations/**.pyc
-quality_security_platform/backend/db.sqlite3
+
+**/__pycache__
+**/migrations/**
+**/db.sqlite3

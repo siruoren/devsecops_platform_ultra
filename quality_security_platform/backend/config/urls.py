@@ -15,10 +15,12 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from apps.system.views import upload_company_logo
 
+
 schema_view = get_schema_view(
     openapi.Info(
         title="质量安全平台 API",
-        default_version='v1.0',
+
+        default_version='v0.1',
         description="QSP 后端接口文档",
         contact=openapi.Contact(email="admin@example.com"),
     ),
@@ -40,8 +42,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # 认证相关：注销（Logout）
+
     path('logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='logout'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='account_logout'),
+
     # API 路由
     path('api/users/', include('apps.users.urls')),
     path('api/projects/', include('apps.projects.urls')),
