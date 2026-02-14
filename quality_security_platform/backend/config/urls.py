@@ -1,18 +1,25 @@
+from django.urls import path
+from django.contrib.staticfiles.views import serve as static_serve
+from django.views.generic import TemplateView
 from django.contrib import admin
 from django.urls import path, include, re_path
+from django.conf import settings
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views  # 导入认证视图
 from django.views.generic import RedirectView
+from django.contrib.auth.views import LogoutView
 from django.contrib.staticfiles.views import serve
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from apps.system.views import upload_company_logo
 
 
 schema_view = get_schema_view(
     openapi.Info(
         title="质量安全平台 API",
+
         default_version='v0.1',
         description="QSP 后端接口文档",
         contact=openapi.Contact(email="admin@example.com"),
@@ -21,16 +28,24 @@ schema_view = get_schema_view(
     permission_classes=[permissions.AllowAny],  # 公开文档，无需登录
 )
 
+
 urlpatterns = [
-    # 根路径重定向到 Swagger 文档
-    path('', RedirectView.as_view(url='/swagger/', permanent=False)),
+    # Web 界面路由
+    path('', include('web.urls')),
+
+    # 企业图标上传
+    path('upload-logo/', upload_company_logo, name='upload_company_logo'),
+    # 企业图标上传页面
+    path('logo-upload/', TemplateView.as_view(template_name='logo_upload.html'), name='logo_upload_page'),
 
     # 后台管理
     path('admin/', admin.site.urls),
 
     # 认证相关：注销（Logout）
-    path('logout/', auth_views.LogoutView.as_view(next_page='/swagger/')),
-    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/swagger/')),
+
+    path('logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='logout'),
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='account_logout'),
+
     # API 路由
     path('api/users/', include('apps.users.urls')),
     path('api/projects/', include('apps.projects.urls')),
@@ -44,8 +59,18 @@ urlpatterns = [
     # Swagger 文档
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    path('api/docs/', RedirectView.as_view(url='/swagger/', permanent=False)),
 
-    # favicon 图标
-    re_path(r'^favicon\.ico$', serve, {'path': 'favicon.ico'}),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
-  + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path('api/', RedirectView.as_view(url='/swagger/', permanent=False)),
+    path('', TemplateView.as_view(template_name='dashboard.html'), name='dashboard'),
+    path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
+    path('users/', TemplateView.as_view(template_name='users.html'), name='users'),
+    path('projects/', TemplateView.as_view(template_name='projects.html'), name='projects'),
+    path('versions/', TemplateView.as_view(template_name='versions.html'), name='versions'),
+    path('vulnerabilities/', TemplateView.as_view(template_name='vulnerabilities.html'), name='vulnerabilities'),
+    path('cicd/', TemplateView.as_view(template_name='cicd.html'), name='cicd'),
+    path('risk/', TemplateView.as_view(template_name='risk.html'), name='risk'),
+    path('system/', TemplateView.as_view(template_name='system.html'), name='system'),
+    # 静态文件服务（开发环境）
+    path('static/<path:path>', static_serve),
+]

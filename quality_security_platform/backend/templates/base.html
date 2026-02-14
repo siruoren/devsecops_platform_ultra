@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}质量安全平台{% endblock %}</title>
+    <!-- 本地 Bootstrap CSS -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <!-- 本地 Font Awesome CSS -->
+    <link rel="stylesheet" href="{% static 'css/all.min.css' %}">
+    <!-- 本地 Chart.js -->
+    <script src="{% static 'js/chart.umd.min.js' %}"></script>
+    {% block extra_css %}{% endblock %}
+    <style>
+        /* 原有样式保持不变 */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --sidebar-bg: rgba(26, 38, 57, 0.95);
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+        /* ... 其余样式代码保持不变 ... */
+    </style>
+</head>
+<body>
+    <!-- 侧边栏和主体内容保持不变 -->
+    ...
+    <!-- 本地 Bootstrap JS -->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+        // 原有 JavaScript 代码保持不变
+        function toggleSidebar() { ... }
+        ...
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

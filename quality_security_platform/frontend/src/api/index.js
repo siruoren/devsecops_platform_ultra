@@ -69,4 +69,11 @@ export default {
   markNotificationAsRead(id) { return apiClient.post(`/system/notifications/${id}/mark_as_read/`) },
   getUnreadCount() { return apiClient.get('/system/notifications/unread_count/') },
   bulkDeleteNotifications(ids) { return apiClient.delete('/system/notifications/bulk_delete/', { data: { ids } }) },
+
+  // 统一认证
+  getAuthStatus() { return apiClient.get('/auth/status/') },
+  loginWithLdap(credentials) { return apiClient.post('/users/login/', credentials) },  // 复用登录接口
+  oidcLogin() { window.location.href = '/auth/oidc/login/' },
+  casLogin() { window.location.href = '/accounts/login/' },
+
 }

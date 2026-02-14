@@ -24,6 +24,8 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       try {
         await api.logout()
+      } catch (error) {
+        console.error('退出登录请求失败', error)
       } finally {
         this.user = null
         this.isAuthenticated = false

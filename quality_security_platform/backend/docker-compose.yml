@@ -1,26 +1,80 @@
 version: '3.8'
+
 services:
   redis:
     image: redis:7-alpine
     container_name: qsp_redis
+    restart: always
     networks: [qsp_network]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   web:
     build: .
     container_name: qsp_web
+    restart: always
     command: python manage.py runserver 0.0.0.0:8000
-    volumes: [.:/app]
+    volumes:
+      - .:/app
+      - static_data:/app/static
+      - media_data:/app/media
     ports: ["8000:8000"]
     env_file: [.env.dev]
-    depends_on: [redis]
+    depends_on:
+      redis:
+        condition: service_healthy
     networks: [qsp_network]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   celery_worker:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.celery
     container_name: qsp_celery_worker
-    command: celery -A config worker --loglevel=info
-    volumes: [.:/app]
+    restart: always
+    command: celery -A config worker --loglevel=info --concurrency=4
+    volumes:
+      - .:/app
     env_file: [.env.dev]
-    depends_on: [redis, web]
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
     networks: [qsp_network]
-networks: {qsp_network: {driver: bridge}}
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: qsp_celery_beat
+    restart: always
+    command: celery -A config beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file: [.env.dev]
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    networks: [qsp_network]
+
+volumes:
+  redis_data:
+  static_data:
+  media_data:
+
+networks:
+  qsp_network:
+    driver: bridge
+    name: qsp_network

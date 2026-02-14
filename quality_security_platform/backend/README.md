@@ -1,21 +1,7 @@
-# 质量安全平台 (QSP) v3.0
+# 质量安全平台 QSP - 全新后端模板设计
 
-## ✨ 特性
-- ✅ 完整 RBAC 权限控制
-- ✅ 用户/项目/版本/漏洞/系统 五大核心管理
-- ✅ CI/CD 流水线管理 + 构建失败自动通知
-- ✅ SonarQube 集成与代码质量展示
-- ✅ 风险评分系统
-- ✅ Swagger 接口文档
-- ✅ 支持 PostgreSQL/MySQL/SQLite 主从/双活
-- ✅ Docker Compose 一键部署
+本版本为基于 Django 模板的后端页面设计，所有页面均为静态 HTML（含模拟数据），不依赖任何前端框架。
 
-## 🚀 快速开始
-### 本地开发
+## 启动方式
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python scripts/init_db.py
 python manage.py runserver

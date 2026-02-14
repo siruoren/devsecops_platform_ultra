@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block active_dashboard %}active{% endblock %}
+{% block title %}仪表盘 - 质量安全平台{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title">仪表盘</h1>
+    <div>
+        <span class="badge bg-light text-dark me-2"><i class="far fa-calendar-alt me-1"></i><span id="currentDate"></span></span>
+        <span class="badge bg-light text-dark"><i class="far fa-clock me-1"></i><span id="currentTime"></span></span>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row g-4 mb-5" id="statCards">
+    <div class="col-md-3">
+        <div class="stat-card d-flex justify-content-between">
+            <div>
+                <span class="text-secondary">项目总数</span>
+                <h2 class="mt-2 fw-bold" id="projectCount">0</h2>
+                <small class="text-success"><i class="fas fa-arrow-up me-1"></i><span id="projectTrend">+0</span></small>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                <i class="fas fa-cubes fa-2x text-primary"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card d-flex justify-content-between">
+            <div>
+                <span class="text-secondary">发布版本</span>
+                <h2 class="mt-2 fw-bold" id="versionCount">0</h2>
+                <small class="text-success"><i class="fas fa-arrow-up me-1"></i><span id="versionTrend">+0</span></small>
+            </div>
+            <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                <i class="fas fa-tag fa-2x text-success"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card d-flex justify-content-between">
+            <div>
+                <span class="text-secondary">高危漏洞</span>
+                <h2 class="mt-2 fw-bold" id="vulnCount">0</h2>
+                <small class="text-danger"><i class="fas fa-arrow-up me-1"></i><span id="vulnTrend">+0</span></small>
+            </div>
+            <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
+                <i class="fas fa-shield-hacked fa-2x text-danger"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card d-flex justify-content-between">
+            <div>
+                <span class="text-secondary">构建成功率</span>
+                <h2 class="mt-2 fw-bold" id="buildSuccessRate">0%</h2>
+                <small class="text-warning"><i class="fas fa-minus me-1"></i><span id="buildTrend">-0%</span></small>
+            </div>
+            <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                <i class="fas fa-chart-line fa-2x text-warning"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 风险趋势 & 最近构建 -->
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="glass-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="section-title mb-0">风险趋势 (订单服务)</h5>
+                <span class="badge bg-light text-dark">近7天</span>
+            </div>
+            <canvas id="riskChart" style="height: 300px; width: 100%;"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="glass-card p-4">
+            <h5 class="section-title">最新告警</h5>
+            <div class="list-group list-group-flush" id="alertsList">
+                <!-- 动态填充 -->
+            </div>
+            <hr>
+            <h5 class="section-title mt-3">最近构建</h5>
+            <div class="list-group list-group-flush" id="recentBuildsList">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 更新日期时间
+function updateDateTime() {
+    const now = new Date();
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN');
+    document.getElementById('currentTime').textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+}
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
+async function fetchDashboardData() {
+    try {
+        // 获取项目总数
+        const projectsRes = await fetch('/api/projects/', { credentials: 'include' });
+        const projectsData = await projectsRes.json();
+        const projectCount = projectsData.count !== undefined ? projectsData.count : (projectsData.results ? projectsData.results.length : projectsData.length);
+        document.getElementById('projectCount').textContent = projectCount;
+
+        // 获取版本总数（假设有 /api/versions/）
+        const versionsRes = await fetch('/api/versions/', { credentials: 'include' });
+        const versionsData = await versionsRes.json();
+        const versionCount = versionsData.count !== undefined ? versionsData.count : (versionsData.results ? versionsData.results.length : versionsData.length);
+        document.getElementById('versionCount').textContent = versionCount;
+
+        // 获取高危漏洞数量（假设有 /api/vulnerabilities/artifactvulnerabilities/?severity=high）
+        const vulnRes = await fetch('/api/vulnerabilities/artifactvulnerabilities/?severity=high', { credentials: 'include' });
+        const vulnData = await vulnRes.json();
+        const vulnCount = vulnData.count !== undefined ? vulnData.count : (vulnData.results ? vulnData.results.length : vulnData.length);
+        document.getElementById('vulnCount').textContent = vulnCount;
+
+        // 获取构建成功率（假设有 /api/builds/）
+        const buildsRes = await fetch('/api/builds/', { credentials: 'include' });
+        const buildsData = await buildsRes.json();
+        const builds = buildsData.results || buildsData;
+        if (builds.length > 0) {
+            const successCount = builds.filter(b => b.status === 'success').length;
+            const rate = (successCount / builds.length * 100).toFixed(1);
+            document.getElementById('buildSuccessRate').textContent = rate + '%';
+        }
+
+        // 获取风险告警
+        const alertsRes = await fetch('/api/risk/alerts/?is_resolved=false', { credentials: 'include' });
+        const alertsData = await alertsRes.json();
+        const alerts = alertsData.results || alertsData;
+        const alertsList = document.getElementById('alertsList');
+        alertsList.innerHTML = '';
+        alerts.slice(0, 3).forEach(alert => {
+            const levelClass = alert.level === 'critical' ? 'bg-danger' :
+                              alert.level === 'high' ? 'bg-warning text-dark' :
+                              alert.level === 'medium' ? 'bg-info' : 'bg-secondary';
+            const levelName = alert.level === 'critical' ? '严重' :
+                             alert.level === 'high' ? '高危' :
+                             alert.level === 'medium' ? '中危' : '低危';
+            alertsList.innerHTML += `
+                <div class="list-group-item bg-transparent border-0 d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge ${levelClass} mb-1">${levelName}</span>
+                        <div class="fw-semibold">${alert.title}</div>
+                        <small class="text-secondary">${alert.description}</small>
+                    </div>
+                    <span class="text-secondary small">刚刚</span>
+                </div>
+            `;
+        });
+        if (alerts.length === 0) {
+            alertsList.innerHTML = '<div class="list-group-item bg-transparent border-0 text-center">暂无告警</div>';
+        }
+
+        // 获取最近构建
+        const recentBuildsRes = await fetch('/api/builds/?ordering=-created_at&page_size=3', { credentials: 'include' });
+        const recentBuildsData = await recentBuildsRes.json();
+        const recentBuilds = recentBuildsData.results || recentBuildsData;
+        const buildsList = document.getElementById('recentBuildsList');
+        buildsList.innerHTML = '';
+        recentBuilds.forEach(build => {
+            const statusClass = build.status === 'success' ? 'bg-success' :
+                               build.status === 'failed' ? 'bg-danger' : 'bg-secondary';
+            buildsList.innerHTML += `
+                <div class="list-group-item bg-transparent border-0 d-flex justify-content-between">
+                    <span>${build.pipeline_name || '未知'} #${build.id}</span>
+                    <span class="badge ${statusClass}">${build.status === 'success' ? '成功' : build.status === 'failed' ? '失败' : '运行中'}</span>
+                </div>
+            `;
+        });
+        if (recentBuilds.length === 0) {
+            buildsList.innerHTML = '<div class="list-group-item bg-transparent border-0 text-center">暂无构建</div>';
+        }
+
+        // 风险趋势图（示例数据，可从后端获取真实数据）
+        const riskCtx = document.getElementById('riskChart').getContext('2d');
+        new Chart(riskCtx, {
+            type: 'line',
+            data: {
+                labels: ['2/7', '2/8', '2/9', '2/10', '2/11', '2/12', '2/13'],
+                datasets: [{
+                    label: '风险评分',
+                    data: [65, 70, 68, 75, 80, 78, 82],
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220,53,69,0.1)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    } catch (err) {
+        console.error('获取仪表盘数据失败', err);
+    }
+}
+
+fetchDashboardData();
+</script>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block active_vulnerabilities %}active{% endblock %}
+{% block title %}安全漏洞 - 质量安全平台{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title">安全漏洞管理</h1>
+    <div>
+        <button class="btn btn-outline-primary me-2" onclick="importDependencyCheck()"><i class="fas fa-upload me-2"></i>导入 Dependency-Check</button>
+        <button class="btn btn-gradient"><i class="fas fa-plus me-2"></i>工件版本变更</button>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="vulnTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="codequality-tab" data-bs-toggle="tab" data-bs-target="#codequality" type="button" role="tab">代码质量</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="artifact-tab" data-bs-toggle="tab" data-bs-target="#artifact" type="button" role="tab">工件漏洞</button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- 代码质量 -->
+    <div class="tab-pane fade show active" id="codequality" role="tabpanel">
+        <div class="glass-card p-4">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                        <input type="text" id="codeSearch" class="form-control" placeholder="按项目名搜索..." onkeyup="fetchCodeQuality()">
+                    </div>
+                </div>
+            </div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>项目</th>
+                        <th>Bugs</th>
+                        <th>漏洞</th>
+                        <th>代码异味</th>
+                        <th>覆盖率</th>
+                        <th>质量门</th>
+                    </tr>
+                </thead>
+                <tbody id="codeQualityTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 工件漏洞（简单列表，图谱暂略） -->
+    <div class="tab-pane fade" id="artifact" role="tabpanel">
+        <div class="glass-card p-4">
+            <div class="input-group mb-3 w-50">
+                <input type="text" id="artifactSearch" class="form-control" placeholder="搜索工件名 / CVE" onkeyup="fetchArtifacts()">
+                <button class="btn btn-outline-secondary"><i class="fas fa-filter"></i></button>
+            </div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>工件名</th>
+                        <th>版本</th>
+                        <th>CVE</th>
+                        <th>严重性</th>
+                        <th>CVSS</th>
+                        <th>项目</th>
+                    </tr>
+                </thead>
+                <tbody id="artifactTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+async function fetchCodeQuality() {
+    const search = document.getElementById('codeSearch').value;
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    // 假设后端有 /api/projects/ 接口，并包含代码质量信息（可从版本或其他关联获取）
+    const res = await fetch('/api/projects/?' + params.toString(), { credentials: 'include' });
+    const data = await res.json();
+    const projects = data.results || data;
+    const tbody = document.getElementById('codeQualityTableBody');
+    tbody.innerHTML = '';
+    projects.forEach(p => {
+        // 这里简化处理，实际可能需要从 p.code_quality 或关联版本获取
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.name}</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td><span class="badge bg-secondary">未扫描</span></td>
+            </tr>
+        `;
+    });
+}
+
+async function fetchArtifacts() {
+    const search = document.getElementById('artifactSearch').value;
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    const res = await fetch('/api/vulnerabilities/artifactvulnerabilities/?' + params.toString(), { credentials: 'include' });
+    const data = await res.json();
+    const artifacts = data.results || data;
+    const tbody = document.getElementById('artifactTableBody');
+    tbody.innerHTML = '';
+    artifacts.forEach(a => {
+        const severityClass = a.severity === 'critical' ? 'bg-danger' :
+                             a.severity === 'high' ? 'bg-warning text-dark' :
+                             a.severity === 'medium' ? 'bg-info' : 'bg-secondary';
+        tbody.innerHTML += `
+            <tr>
+                <td>${a.artifact_name}</td>
+                <td>${a.artifact_version}</td>
+                <td>${a.cve}</td>
+                <td><span class="badge ${severityClass}">${a.severity}</span></td>
+                <td>${a.cvss_score || ''}</td>
+                <td>${a.scan?.project_name || '未知'}</td>
+            </tr>
+        `;
+    });
+}
+
+function importDependencyCheck() {
+    // 跳转到上传页面或实现文件上传逻辑
+    alert('请实现文件上传功能');
+}
+
+fetchCodeQuality();
+fetchArtifacts();
+</script>
+{% endblock %}

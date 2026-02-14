@@ -9,6 +9,10 @@ from .serializers import *
 from apps.base.viewsets import BaseModelViewSet
 
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+@method_decorator(csrf_exempt, name='login')
 class UserViewSet(BaseModelViewSet):
     """
     用户管理：支持过滤、搜索、排序、批量删除
@@ -32,7 +36,7 @@ class UserViewSet(BaseModelViewSet):
         return UserSerializer
 
     def get_permissions(self):
-        if self.action == 'login':
+        if self.action in ['login', 'logout']:
             return [AllowAny()]
         return super().get_permissions()
 
@@ -42,9 +46,12 @@ class UserViewSet(BaseModelViewSet):
             return User.objects.all()
         return User.objects.filter(id=user.id)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], url_path='login')
+    @csrf_exempt
     def login(self, request):
-        serializer = self.get_serializer(data=request.data)
+        # 打印日志，确认视图被调用
+        print("✅ login action called with method:", request.method)
+        serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = authenticate(**serializer.validated_data)
         if user:
@@ -52,7 +59,7 @@ class UserViewSet(BaseModelViewSet):
             return Response(UserSerializer(user).data)
         return Response({'error': '用户名或密码错误'}, status=401)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post', 'get'])
     def logout(self, request):
         logout(request)
         return Response({'message': '退出成功'})

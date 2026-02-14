@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% block active_projects %}active{% endblock %}
+{% block title %}项目管理 - 质量安全平台{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title">项目管理</h1>
+    <div>
+        <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#envModal"><i class="fas fa-server me-2"></i>环境管理</button>
+        <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#projectModal" onclick="clearProjectForm()"><i class="fas fa-plus me-2"></i>新建应用</button>
+    </div>
+</div>
+
+<!-- 搜索栏 -->
+<div class="glass-card p-3 mb-4">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchProject" class="form-control" placeholder="应用名 / Git仓库" onkeyup="fetchProjects()">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <select id="envFilter" class="form-select" onchange="fetchProjects()">
+                <option value="">全部环境</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary" onclick="fetchProjects()">查询</button>
+            <button class="btn btn-outline-secondary ms-2" onclick="resetProjectFilters()">重置</button>
+        </div>
+    </div>
+</div>
+
+<!-- 项目列表 -->
+<div class="glass-card p-4">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>应用名</th>
+                <th>仓库地址</th>
+                <th>环境</th>
+                <th>负责人</th>
+                <th>SonarQube项目Key</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="projectTableBody"></tbody>
+    </table>
+</div>
+
+<!-- 项目表单模态框 -->
+<div class="modal fade" id="projectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="projectModalTitle">新建应用</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <input type="hidden" id="projectId">
+                    <div class="mb-3">
+                        <label class="form-label">应用名</label>
+                        <input type="text" id="projectName" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Git仓库地址</label>
+                        <input type="url" id="gitRepo" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">仓库内路径</label>
+                        <input type="text" id="gitPath" class="form-control" value="/">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">环境</label>
+                        <select id="environment" class="form-select" required>
+                            <option value="">请选择</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">部署目录</label>
+                        <input type="text" id="deployDir" class="form-control" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">启动脚本</label>
+                            <input type="text" id="startScript" class="form-control">
+                        </div>
+                        <div class="col">
+                            <label class="form-label">停止脚本</label>
+                            <input type="text" id="stopScript" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">启动Cron</label>
+                            <input type="text" id="startCron" class="form-control" placeholder="0 2 * * *">
+                        </div>
+                        <div class="col">
+                            <label class="form-label">停止Cron</label>
+                            <input type="text" id="stopCron" class="form-control" placeholder="0 3 * * *">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SonarQube项目Key</label>
+                        <input type="text" id="sonarKey" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">负责人</label>
+                        <select id="owner" class="form-select">
+                            <option value="">请选择</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveProject()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 环境管理模态框（简化版，仅展示列表） -->
+<div class="modal fade" id="envModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">环境管理</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <thead>
+                        <tr><th>环境名</th><th>服务器IP</th></tr>
+                    </thead>
+                    <tbody id="envTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let environments = [];
+let users = [];
+
+// 获取环境列表
+async function fetchEnvironments() {
+    const res = await fetch('/api/environments/', { credentials: 'include' });
+    environments = await res.json();
+    const envSelects = document.querySelectorAll('#environment, #envFilter');
+    envSelects.forEach(select => {
+        select.innerHTML = '<option value="">请选择</option>';
+        environments.forEach(env => {
+            select.innerHTML += `<option value="${env.id}">${env.name}</option>`;
+        });
+    });
+    // 填充环境表格
+    const tbody = document.getElementById('envTableBody');
+    tbody.innerHTML = '';
+    environments.forEach(env => {
+        tbody.innerHTML += `<tr><td>${env.name}</td><td>${env.server_ips}</td></tr>`;
+    });
+}
+
+// 获取用户列表（用于负责人下拉）
+async function fetchUsersForSelect() {
+    const res = await fetch('/api/users/?page_size=100', { credentials: 'include' });
+    const data = await res.json();
+    users = data.results || data;
+    const ownerSelect = document.getElementById('owner');
+    ownerSelect.innerHTML = '<option value="">请选择</option>';
+    users.forEach(u => {
+        ownerSelect.innerHTML += `<option value="${u.id}">${u.username}</option>`;
+    });
+}
+
+// 获取项目列表
+async function fetchProjects() {
+    const search = document.getElementById('searchProject').value;
+    const env = document.getElementById('envFilter').value;
+    let url = '/api/projects/';
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (env) params.append('environment', env);
+    url += '?' + params.toString();
+    const res = await fetch(url, { credentials: 'include' });
+    const data = await res.json();
+    const projects = data.results || data;
+    renderProjects(projects);
+}
+
+function renderProjects(projects) {
+    const tbody = document.getElementById('projectTableBody');
+    tbody.innerHTML = '';
+    projects.forEach(p => {
+        const envName = environments.find(e => e.id === p.environment)?.name || p.environment_name || '未知';
+        const ownerName = users.find(u => u.id === p.owner)?.username || p.owner_username || '—';
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-semibold">${p.name}</td>
+                <td><code>${p.git_repo}</code></td>
+                <td><span class="badge bg-info">${envName}</span></td>
+                <td>${ownerName}</td>
+                <td>${p.sonarqube_project_key || '—'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="editProject(${p.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteProject(${p.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function clearProjectForm() {
+    document.getElementById('projectId').value = '';
+    document.getElementById('projectName').value = '';
+    document.getElementById('gitRepo').value = '';
+    document.getElementById('gitPath').value = '/';
+    document.getElementById('environment').value = '';
+    document.getElementById('deployDir').value = '';
+    document.getElementById('startScript').value = '';
+    document.getElementById('stopScript').value = '';
+    document.getElementById('startCron').value = '';
+    document.getElementById('stopCron').value = '';
+    document.getElementById('sonarKey').value = '';
+    document.getElementById('owner').value = '';
+    document.getElementById('projectModalTitle').textContent = '新建应用';
+}
+
+function editProject(id) {
+    fetch(`/api/projects/${id}/`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(p => {
+            document.getElementById('projectId').value = p.id;
+            document.getElementById('projectName').value = p.name;
+            document.getElementById('gitRepo').value = p.git_repo;
+            document.getElementById('gitPath').value = p.git_path;
+            document.getElementById('environment').value = p.environment;
+            document.getElementById('deployDir').value = p.deploy_dir;
+            document.getElementById('startScript').value = p.start_script;
+            document.getElementById('stopScript').value = p.stop_script;
+            document.getElementById('startCron').value = p.start_cron;
+            document.getElementById('stopCron').value = p.stop_cron;
+            document.getElementById('sonarKey').value = p.sonarqube_project_key;
+            document.getElementById('owner').value = p.owner;
+            document.getElementById('projectModalTitle').textContent = '编辑应用';
+            new bootstrap.Modal(document.getElementById('projectModal')).show();
+        })
+        .catch(err => console.error(err));
+}
+
+function saveProject() {
+    const id = document.getElementById('projectId').value;
+    const data = {
+        name: document.getElementById('projectName').value,
+        git_repo: document.getElementById('gitRepo').value,
+        git_path: document.getElementById('gitPath').value,
+        environment: parseInt(document.getElementById('environment').value),
+        deploy_dir: document.getElementById('deployDir').value,
+        start_script: document.getElementById('startScript').value,
+        stop_script: document.getElementById('stopScript').value,
+        start_cron: document.getElementById('startCron').value,
+        stop_cron: document.getElementById('stopCron').value,
+        sonarqube_project_key: document.getElementById('sonarKey').value,
+        owner: document.getElementById('owner').value || null,
+    };
+    const url = id ? `/api/projects/${id}/` : '/api/projects/';
+    const method = id ? 'PUT' : 'POST';
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+    })
+    .then(res => {
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
+            fetchProjects();
+        } else {
+            res.json().then(err => alert('保存失败: ' + JSON.stringify(err)));
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+function deleteProject(id) {
+    if (!confirm('确认删除该项目吗？')) return;
+    fetch(`/api/projects/${id}/`, { method: 'DELETE', credentials: 'include' })
+        .then(res => {
+            if (res.ok) fetchProjects();
+            else alert('删除失败');
+        })
+        .catch(err => console.error(err));
+}
+
+function resetProjectFilters() {
+    document.getElementById('searchProject').value = '';
+    document.getElementById('envFilter').value = '';
+    fetchProjects();
+}
+
+fetchEnvironments();
+fetchUsersForSelect();
+fetchProjects();
+</script>
+{% endblock %}

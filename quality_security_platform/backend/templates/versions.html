@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block active_versions %}active{% endblock %}
+{% block title %}版本管理 - 质量安全平台{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title">版本管理</h1>
+    <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#versionModal" onclick="clearVersionForm()"><i class="fas fa-plus me-2"></i>新建发布版本</button>
+</div>
+
+<div class="glass-card p-4">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>版本号</th>
+                <th>创建时间</th>
+                <th>封板时间</th>
+                <th>状态</th>
+                <th>代码质量</th>
+                <th>登记应用数</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="versionTableBody"></tbody>
+    </table>
+</div>
+
+<!-- 版本模态框（简略） -->
+<div class="modal fade" id="versionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="versionModalTitle">新建发布版本</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="versionForm">
+                    <input type="hidden" id="versionId">
+                    <div class="mb-3">
+                        <label class="form-label">版本号</label>
+                        <input type="text" id="versionNumber" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <select id="versionStatus" class="form-select">
+                            <option value="developing">开发中</option>
+                            <option value="released">已封板</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveVersion()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function fetchVersions() {
+    const res = await fetch('/api/versions/', { credentials: 'include' });
+    const data = await res.json();
+    const versions = data.results || data;
+    renderVersions(versions);
+}
+
+function renderVersions(versions) {
+    const tbody = document.getElementById('versionTableBody');
+    tbody.innerHTML = '';
+    versions.forEach(v => {
+        const statusClass = v.status === 'developing' ? 'bg-warning text-dark' : 'bg-secondary';
+        const statusText = v.status === 'developing' ? '开发中' : '已封板';
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-semibold"><a href="#" class="text-decoration-none">${v.version}</a></td>
+                <td>${new Date(v.created_at).toLocaleDateString()}</td>
+                <td>${v.released_at ? new Date(v.released_at).toLocaleDateString() : '--'}</td>
+                <td><span class="badge ${statusClass}">${statusText}</span></td>
+                <td>${v.code_quality?.quality_gate || '未扫描'}</td>
+                <td>${v.registrations?.length || 0}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="editVersion(${v.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteVersion(${v.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function clearVersionForm() {
+    document.getElementById('versionId').value = '';
+    document.getElementById('versionNumber').value = '';
+    document.getElementById('versionStatus').value = 'developing';
+    document.getElementById('versionModalTitle').textContent = '新建发布版本';
+}
+
+function editVersion(id) {
+    fetch(`/api/versions/${id}/`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(v => {
+            document.getElementById('versionId').value = v.id;
+            document.getElementById('versionNumber').value = v.version;
+            document.getElementById('versionStatus').value = v.status;
+            document.getElementById('versionModalTitle').textContent = '编辑发布版本';
+            new bootstrap.Modal(document.getElementById('versionModal')).show();
+        });
+}
+
+function saveVersion() {
+    const id = document.getElementById('versionId').value;
+    const data = {
+        version: document.getElementById('versionNumber').value,
+        status: document.getElementById('versionStatus').value,
+    };
+    const url = id ? `/api/versions/${id}/` : '/api/versions/';
+    const method = id ? 'PUT' : 'POST';
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+    })
+    .then(res => {
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('versionModal')).hide();
+            fetchVersions();
+        } else {
+            res.json().then(err => alert('保存失败'));
+        }
+    });
+}
+
+function deleteVersion(id) {
+    if (!confirm('确认删除该版本吗？')) return;
+    fetch(`/api/versions/${id}/`, { method: 'DELETE', credentials: 'include' })
+        .then(res => {
+            if (res.ok) fetchVersions();
+            else alert('删除失败');
+        });
+}
+
+fetchVersions();
+</script>
+{% endblock %}
