@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block active_risk %}active{% endblock %}
+{% block title %}风险看板 - 质量安全平台{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title">风险看板</h1>
+    <span class="badge bg-light text-dark" id="updateTime">更新于 --:--</span>
+</div>
+
+<div class="row g-4 mb-4" id="riskStats">
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <h3 class="text-danger fw-bold" id="maxRisk">0</h3>
+            <span>最高风险分</span>
+            <small class="text-secondary d-block" id="maxRiskProject">—</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <h3 class="text-warning fw-bold" id="highRiskCount">0</h3>
+            <span>高风险项目</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <h3 class="text-success fw-bold" id="lowRiskCount">0</h3>
+            <span>低风险项目</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card text-center">
+            <h3 class="text-primary fw-bold" id="alertCount">0</h3>
+            <span>待处理告警</span>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card p-4">
+    <h5 class="section-title">项目风险评分</h5>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>项目</th>
+                <th>综合风险</th>
+                <th>代码质量</th>
+                <th>漏洞风险</th>
+                <th>流水线健康</th>
+                <th>状态</th>
+            </tr>
+        </thead>
+        <tbody id="riskTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+async function fetchRiskData() {
+    try {
+        const profilesRes = await fetch('/api/risk/profiles/', { credentials: 'include' });
+        const profiles = (await profilesRes.json()).results || [];
+        const alertsRes = await fetch('/api/risk/alerts/?is_resolved=false', { credentials: 'include' });
+        const alerts = (await alertsRes.json()).results || [];
+
+        // 更新统计
+        let max = 0, maxProj = '';
+        let high = 0, low = 0;
+        profiles.forEach(p => {
+            if (p.overall_score > max) {
+                max = p.overall_score;
+                maxProj = p.project_name;
+            }
+            if (p.overall_score >= 70) high++;
+            else low++;
+        });
+        document.getElementById('maxRisk').textContent = max;
+        document.getElementById('maxRiskProject').textContent = maxProj || '—';
+        document.getElementById('highRiskCount').textContent = high;
+        document.getElementById('lowRiskCount').textContent = low;
+        document.getElementById('alertCount').textContent = alerts.length;
+
+        // 渲染表格
+        const tbody = document.getElementById('riskTableBody');
+        tbody.innerHTML = '';
+        profiles.forEach(p => {
+            const riskClass = p.overall_score >= 70 ? 'bg-danger' :
+                             p.overall_score >= 40 ? 'bg-warning text-dark' : 'bg-success';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.project_name}</td>
+                    <td><span class="badge ${riskClass}">${p.overall_score}</span></td>
+                    <td>${p.code_quality_score}</td>
+                    <td>${p.vulnerability_score}</td>
+                    <td>${p.pipeline_health_score}</td>
+                    <td>${p.overall_score >= 70 ? '<i class="fas fa-exclamation-triangle text-danger"></i> 严重' :
+                             p.overall_score >= 40 ? '<i class="fas fa-exclamation-circle text-warning"></i> 中危' :
+                             '<i class="fas fa-check-circle text-success"></i> 正常'}</td>
+                </tr>
+            `;
+        });
+        document.getElementById('updateTime').textContent = `更新于 ${new Date().toLocaleTimeString()}`;
+    } catch (err) {
+        console.error('获取风险数据失败', err);
+    }
+}
+
+fetchRiskData();
+</script>
+{% endblock %}

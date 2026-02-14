@@ -10,7 +10,7 @@ fi
 
 
 # ========== 重新生成迁移文件 ==========
-python manage.py makemigrations users --noinput
+python manage.py makemigrations users  --noinput
 python manage.py makemigrations rbac --noinput
 python manage.py makemigrations projects --noinput
 python manage.py makemigrations versions --noinput
@@ -18,6 +18,8 @@ python manage.py makemigrations vulnerabilities --noinput
 python manage.py makemigrations ci_cd --noinput
 python manage.py makemigrations risk --noinput
 python manage.py makemigrations system --noinput
+python manage.py makemigrations auth_unified   --noinput
+
 
 # ========== 执行迁移 ==========
 python manage.py migrate --noinput

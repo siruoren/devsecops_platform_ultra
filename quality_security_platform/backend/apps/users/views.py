@@ -9,6 +9,10 @@ from .serializers import *
 from apps.base.viewsets import BaseModelViewSet
 
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+@method_decorator(csrf_exempt, name='login')
 class UserViewSet(BaseModelViewSet):
     """
     用户管理：支持过滤、搜索、排序、批量删除
@@ -42,9 +46,12 @@ class UserViewSet(BaseModelViewSet):
             return User.objects.all()
         return User.objects.filter(id=user.id)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], url_path='login')
+    @csrf_exempt
     def login(self, request):
-        serializer = self.get_serializer(data=request.data)
+        # 打印日志，确认视图被调用
+        print("✅ login action called with method:", request.method)
+        serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = authenticate(**serializer.validated_data)
         if user:

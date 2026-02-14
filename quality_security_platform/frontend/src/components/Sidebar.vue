@@ -2,7 +2,7 @@
   <nav id="sidebar" :class="{ active: isCollapsed }">
     <div class="sidebar-header">
       <h3>QSP</h3>
-      <small>质量安全平台 v5.0</small>
+      <small>质量安全平台 v0.0.1</small>
     </div>
     <ul class="components list-unstyled">
       <li v-for="item in menuItems" :key="item.path" :class="{ active: $route.path === item.path }">

@@ -8,7 +8,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-development-key-change-in-production')
 DEBUG = env.bool('DEBUG', False)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -49,7 +49,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -131,5 +131,56 @@ CONSTANCE_CONFIG = {
     'SONAR_HOST_URL': ('http://localhost:9000', 'SonarQube地址'),
     'SONAR_TOKEN': ('', 'SonarQube Token'),
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ========== 认证后端配置 ==========
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # 本地认证（始终保留）
+]
+
+
+# 统一认证后端（动态添加）
+def get_auth_backends():
+    """根据配置动态添加认证后端"""
+    from apps.auth_unified.models import UnifiedAuthConfig
+
+    try:
+        config = UnifiedAuthConfig.get_config()
+        backends = AUTHENTICATION_BACKENDS.copy()
+
+        if config.enabled:
+            if config.auth_type == 'ldap':
+                backends.append('apps.auth_unified.backends.ldap.LDAPBackend')
+            elif config.auth_type == 'keycloak':
+                backends.append('apps.auth_unified.backends.oidc.OIDCAuthenticationBackend')
+            elif config.auth_type == 'cas':
+                backends.append('apps.auth_unified.backends.cas.CASBackend')
+
+        return backends
+    except Exception:
+        return AUTHENTICATION_BACKENDS
+
+
+# 由于无法在启动时动态执行数据库查询，可以在 settings 中保持静态配置
+# 实际认证后端的选择通过中间件或自定义认证类实现
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    # 'apps.auth_unified.backends.ldap.LDAPBackend',  # 始终加载，内部会检查配置
+    # 'apps.auth_unified.backends.oidc.OIDCAuthenticationBackend',  # 始终加载
+    # 'apps.auth_unified.backends.cas.CASBackend',  # 始终加载
+]
+
+# ========== 登录/登出重定向 ==========
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'
+# 认证相关
+# ========== 添加统一认证应用 ==========
+INSTALLED_APPS += [
+    'apps.auth_unified',
+]
+
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
