@@ -10,6 +10,8 @@ class ReleaseVersion(models.Model):
     code_quality = models.JSONField(default=dict, blank=True)
     created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     class Meta: db_table = 'release_versions'
+    def __str__(self):
+        return self.version
 class VersionRegistration(models.Model):
     release_version = models.ForeignKey(ReleaseVersion, on_delete=models.CASCADE, related_name='registrations')
     project = models.ForeignKey(Project, on_delete=models.CASCADE)

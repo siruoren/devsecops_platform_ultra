@@ -36,7 +36,7 @@ class UserViewSet(BaseModelViewSet):
         return UserSerializer
 
     def get_permissions(self):
-        if self.action == 'login':
+        if self.action in ['login', 'logout']:
             return [AllowAny()]
         return super().get_permissions()
 
@@ -59,7 +59,7 @@ class UserViewSet(BaseModelViewSet):
             return Response(UserSerializer(user).data)
         return Response({'error': '用户名或密码错误'}, status=401)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post', 'get'])
     def logout(self, request):
         logout(request)
         return Response({'message': '退出成功'})

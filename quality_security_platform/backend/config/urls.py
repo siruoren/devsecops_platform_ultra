@@ -26,13 +26,15 @@ schema_view = get_schema_view(
 
 
 urlpatterns = [
+    # Web 界面路由
+    path('', include('web.urls')),
 
     # 后台管理
     path('admin/', admin.site.urls),
 
     # 认证相关：注销（Logout）
-    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
-    path('accounts/logout/', LogoutView.as_view(next_page='/'), name='account_logout'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='logout'),
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='account_logout'),
     # API 路由
     path('api/users/', include('apps.users.urls')),
     path('api/projects/', include('apps.projects.urls')),
@@ -46,6 +48,7 @@ urlpatterns = [
     # Swagger 文档
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    path('api/docs/', RedirectView.as_view(url='/swagger/', permanent=False)),
 
     path('api/', RedirectView.as_view(url='/swagger/', permanent=False)),
     path('', TemplateView.as_view(template_name='dashboard.html'), name='dashboard'),

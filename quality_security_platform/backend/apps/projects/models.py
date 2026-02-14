@@ -2,9 +2,16 @@ from django.db import models
 from apps.users.models import User
 class Environment(models.Model):
     name = models.CharField('环境名', max_length=100, unique=True)
-    server_ips = models.TextField('服务器IP')
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta: db_table = 'environments'
+    def __str__(self):
+        return self.name
+class ServerIP(models.Model):
+    environment = models.ForeignKey(Environment, on_delete=models.CASCADE, related_name='server_ips')
+    ip = models.CharField('IP地址', max_length=50)
+    class Meta: db_table = 'server_ips'
+    def __str__(self):
+        return self.ip
 class Project(models.Model):
     name = models.CharField('应用名', max_length=200, unique=True)
     git_repo = models.URLField('Git仓库地址')
@@ -20,3 +27,5 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta: db_table = 'projects'
+    def __str__(self):
+        return self.name

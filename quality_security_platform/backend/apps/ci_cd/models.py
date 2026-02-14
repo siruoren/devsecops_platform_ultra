@@ -6,10 +6,13 @@ class Pipeline(models.Model):
     name = models.CharField('流水线名称', max_length=200)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='pipelines')
     description = models.TextField(blank=True)
+    pipeline_url = models.URLField('流水线URL', max_length=500, blank=True)
     created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     class Meta: db_table = 'cicd_pipelines'
+    def __str__(self):
+        return self.name
 class PipelineStage(models.Model):
     pipeline = models.ForeignKey(Pipeline, on_delete=models.CASCADE, related_name='stages')
     name = models.CharField('阶段名称', max_length=100)
