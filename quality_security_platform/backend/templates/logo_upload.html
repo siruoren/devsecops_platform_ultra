@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上传企业图标 - 质量安全平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+        }
+        .logo-preview {
+            border: 2px dashed #ced4da;
+            border-radius: 8px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+        }
+        .logo-preview img {
+            max-height: 180px;
+            max-width: 100%;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+        }
+        .alert {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h2 class="text-center mb-4">上传企业图标</h2>
+        
+        <div class="logo-preview" id="logoPreview">
+            <div id="previewContent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#6c757d" class="bi bi-image" viewBox="0 0 16 16">
+                    <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                    <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm1.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 15a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                </svg>
+                <p class="mt-2 text-muted">预览区域</p>
+            </div>
+        </div>
+        
+        <form id="uploadForm">
+            <div class="mb-3">
+                <label for="logo" class="form-label">选择图标文件</label>
+                <input type="file" class="form-control" id="logo" name="logo" accept="image/*" required>
+                <div class="form-text">支持 JPG、PNG、SVG 等图片格式，建议尺寸为 128x128 像素</div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">上传图标</button>
+        </form>
+        
+        <div id="message" class="alert d-none"></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoInput = document.getElementById('logo');
+            const logoPreview = document.getElementById('logoPreview');
+            const previewContent = document.getElementById('previewContent');
+            const uploadForm = document.getElementById('uploadForm');
+            const message = document.getElementById('message');
+            
+            // 预览功能
+            logoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewContent.innerHTML = `<img src="${e.target.result}" alt="预览">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContent.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#6c757d" class="bi bi-image" viewBox="0 0 16 16">
+                            <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                            <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm1.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 15a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                        </svg>
+                        <p class="mt-2 text-muted">预览区域</p>
+                    `;
+                }
+            });
+            
+            // 上传功能
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(uploadForm);
+                
+                fetch('/upload-logo/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        message.className = 'alert alert-success';
+                        message.textContent = data.message;
+                        message.classList.remove('d-none');
+                        
+                        // 更新预览
+                        previewContent.innerHTML = `<img src="${data.logo_url}" alt="预览">`;
+                        
+                        // 3秒后跳转到系统设置页面
+                        setTimeout(() => {
+                            window.location.href = '/admin/constance/config/';
+                        }, 3000);
+                    } else {
+                        message.className = 'alert alert-danger';
+                        message.textContent = data.message;
+                        message.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    message.className = 'alert alert-danger';
+                    message.textContent = '上传失败，请重试';
+                    message.classList.remove('d-none');
+                    console.error('Error:', error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

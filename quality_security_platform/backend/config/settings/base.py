@@ -287,11 +287,9 @@ SIMPLEUI_CONFIG = {
 }
 
 # SimpleUI 主题设置
-import os
-from constance import config
-SIMPLEUI_DEFAULT_THEME = config.HOME_THEME if hasattr(config, 'HOME_THEME') else 'admin.lte.css'
-# 使用 CONSTANCE 中配置的企业图标
-SIMPLEUI_LOGO = os.path.join('/media/', config.COMPANY_LOGO) if hasattr(config, 'COMPANY_LOGO') and config.COMPANY_LOGO else None
+SIMPLEUI_DEFAULT_THEME = 'admin.lte.css'
+# 默认不使用自定义 logo
+SIMPLEUI_LOGO = None
 SIMPLEUI_HOME_INFO = False
 SIMPLEUI_ANALYSIS = False
 

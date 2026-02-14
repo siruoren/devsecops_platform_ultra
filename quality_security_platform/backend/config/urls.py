@@ -4,6 +4,7 @@ from django.views.generic import TemplateView
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
+from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views  # 导入认证视图
 from django.views.generic import RedirectView
@@ -12,6 +13,7 @@ from django.contrib.staticfiles.views import serve
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from apps.system.views import upload_company_logo
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -28,6 +30,11 @@ schema_view = get_schema_view(
 urlpatterns = [
     # Web 界面路由
     path('', include('web.urls')),
+
+    # 企业图标上传
+    path('upload-logo/', upload_company_logo, name='upload_company_logo'),
+    # 企业图标上传页面
+    path('logo-upload/', TemplateView.as_view(template_name='logo_upload.html'), name='logo_upload_page'),
 
     # 后台管理
     path('admin/', admin.site.urls),
