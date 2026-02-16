@@ -13,7 +13,7 @@ from django.contrib.staticfiles.views import serve
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from apps.system.views import upload_company_logo
+from apps.system.views import upload_company_logo, save_site_settings, reset_company_logo, get_site_settings
 
 
 schema_view = get_schema_view(
@@ -30,11 +30,12 @@ schema_view = get_schema_view(
 
 
 urlpatterns = [
+    # 版本管理页面（优先匹配）
+    path('versions/', TemplateView.as_view(template_name='versions.html'), name='versions'),
+
     # Web 界面路由
     path('', include('web.urls')),
 
-    # 企业图标上传
-    path('upload-logo/', upload_company_logo, name='upload_company_logo'),
     # 企业图标上传页面
     path('logo-upload/', TemplateView.as_view(template_name='logo_upload.html'), name='logo_upload_page'),
 
@@ -66,7 +67,7 @@ urlpatterns = [
     path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
     path('users/', TemplateView.as_view(template_name='users.html'), name='users'),
     path('projects/', TemplateView.as_view(template_name='projects.html'), name='projects'),
-    path('versions/', TemplateView.as_view(template_name='versions.html'), name='versions'),
+    # path('versions/', TemplateView.as_view(template_name='versions.html'), name='versions'),
     path('vulnerabilities/', TemplateView.as_view(template_name='vulnerabilities.html'), name='vulnerabilities'),
     path('cicd/', TemplateView.as_view(template_name='cicd.html'), name='cicd'),
     path('risk/', TemplateView.as_view(template_name='risk.html'), name='risk'),
@@ -74,3 +75,36 @@ urlpatterns = [
     # 静态文件服务（开发环境）
     path('static/<path:path>', static_serve),
 ]
+
+# 为 media 目录提供服务（开发环境）
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# 在 Django 应用加载后设置 SIMPLEUI_LOGO
+try:
+    from django.conf import settings
+    import os
+    from apps.system.models import SystemConfig
+    
+    # 从数据库读取配置
+    try:
+        company_logo_config = SystemConfig.objects.filter(key='company_logo').first()
+        if company_logo_config and company_logo_config.value:
+            settings.SIMPLEUI_LOGO = f'/media/{company_logo_config.value}'
+        else:
+            settings.SIMPLEUI_LOGO = None
+    except Exception as db_error:
+        print(f"从数据库读取公司logo失败: {db_error}")
+        # 回退到从JSON文件读取
+        CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'config', 'site_settings.json')
+        if os.path.exists(CONFIG_FILE_PATH):
+            import json
+            with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+                company_logo = config_data.get('COMPANY_LOGO', '')
+                if company_logo:
+                    settings.SIMPLEUI_LOGO = f'/media/{company_logo}'
+                else:
+                    settings.SIMPLEUI_LOGO = None
+except Exception as e:
+    print(f"设置 SIMPLEUI_LOGO 失败: {e}")

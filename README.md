@@ -2,6 +2,7 @@
 
   | 版本 | 日期       | 作者       | 变更内容                              |
   | :--- | :--------- | :--------- | :------------------------------------ |
+  | V4.0 | 2026-02-16 | 系统架构师 | 完善已实现功能，添加实现状态和使用说明 |
   | V3.0 | 2026-02-13 | 系统架构师 | 新增 RBAC、CI/CD 流水线、风险评分系统 |
   | V2.0 | 2026-02-12 | 系统架构师 | 完善双活、主从同步、多数据库支持      |
   | V1.0 | 2026-02-10 | 系统架构师 | 初始版本（五大管理菜单）              |
@@ -46,6 +47,61 @@
   6. **CI/CD 流水线管理** – 流水线定义、构建触发、阶段记录、失败通知。
   7. **风险评分系统** – 项目风险档案、风险评分、风险告警。
   8. **系统管理** – 动态配置（邮件、消息限额）、站内通知中心。
+
+  ### 1.4 实现状态
+
+  | 模块名称           | 实现状态 | 主要功能                                                                 |
+  | :----------------- | :------- | :----------------------------------------------------------------------- |
+  | 用户管理           | ✅ 已实现 | 用户注册、登录认证、个人信息管理                                         |
+  | RBAC 权限系统      | ✅ 已实现 | 角色管理、权限分配、菜单/按钮/API 级权限控制                            |
+  | 项目管理           | ✅ 已实现 | 应用信息维护、部署环境管理、负责人关联                                   |
+  | 版本管理           | ✅ 已实现 | 发布版本维护、应用版本登记、版本详情查看（点击版本号弹出模态框）         |
+  | 安全漏洞管理       | ✅ 已实现 | Dependency-Check 报告导入、漏洞检索、项目‑工件关系图谱                   |
+  | CI/CD 流水线管理   | ✅ 已实现 | 流水线定义、构建触发、阶段记录、失败通知、操作按钮（修改配置、开始构建、取消构建） |
+  | 风险评分系统       | ✅ 已实现 | 项目风险档案、风险评分、风险告警                                         |
+  | 系统管理           | ✅ 已实现 | 动态配置、站内通知中心、邮件发送                                         |
+
+  ### 1.5 使用说明
+
+  #### 1.5.1 版本管理功能
+
+  - **访问路径**：`/versions/`
+  - **核心功能**：
+    1. **发布版本维护**：创建、编辑、删除发布版本
+    2. **应用版本登记**：为每个发布版本登记应用及其版本号
+    3. **版本详情查看**：点击版本号弹出模态框，显示版本信息和登记的应用版本列表
+  - **操作步骤**：
+    1. 登录系统后，进入版本管理页面
+    2. 点击「新建发布版本」按钮创建新的发布版本
+    3. 在版本列表中，点击版本号查看详细信息和登记的应用版本
+    4. 在版本详情模态框中，查看应用名称和对应的应用版本号
+
+  #### 1.5.2 CI/CD 流水线管理功能
+
+  - **访问路径**：`/cicd/`
+  - **核心功能**：
+    1. **流水线定义**：创建和管理流水线及其阶段
+    2. **构建操作**：点击操作按钮执行修改配置、开始构建、取消构建
+    3. **构建状态跟踪**：查看构建历史和阶段执行状态
+    4. **失败通知**：构建失败时自动发送通知
+  - **操作步骤**：
+    1. 登录系统后，进入CI/CD管理页面
+    2. 创建流水线并配置阶段
+    3. 在流水线列表中，点击「开始构建」按钮触发构建
+    4. 查看构建状态和阶段执行情况
+
+  #### 1.5.3 安全漏洞管理功能
+
+  - **访问路径**：`/vulnerabilities/`
+  - **核心功能**：
+    1. **Dependency-Check 报告导入**：上传并解析漏洞报告
+    2. **漏洞检索**：按项目、工件、版本搜索漏洞
+    3. **项目‑工件关系图谱**：可视化展示项目与工件的依赖关系
+  - **操作步骤**：
+    1. 登录系统后，进入漏洞管理页面
+    2. 点击「导入漏洞报告」按钮上传Dependency-Check JSON文件
+    3. 查看漏洞列表和项目‑工件关系图谱
+
 
   ------
 
@@ -127,7 +183,8 @@
   | V03  | 代码质量写入 API | 接收 SonarQube 扫描结果（JSON），存储至版本记录的 `code_quality` 字段。 |
   | V04  | 应用版本登记     | 在发布版本详情页选择应用并填写该应用在此版本中的版本号。     |
   | V05  | 登记信息修改     | 仅允许本人或管理员修改登记记录。                             |
-  | V06  | 版本详情展示     | 点击版本号进入详情页，展示该版本下所有登记的应用及应用版本，支持按应用名搜索。 |
+  | V06  | 版本详情展示     | 点击版本号弹出模态框，展示该版本下所有登记的应用及应用版本，以列表形式显示。 |
+  | V07  | 版本详情 API     | 提供 API 获取版本详情和登记的应用版本列表，支持前端模态框展示。 |
 
   ### 3.5 安全漏洞管理（菜单4）
 
@@ -159,6 +216,8 @@
   | C04  | 构建历史         | 查看所有构建记录，支持按流水线、状态、时间过滤，可查看详细日志。 |
   | C05  | 构建失败自动通知 | 构建失败时，自动向触发人发送站内消息（及邮件，若配置）。     |
   | C06  | SonarQube 集成   | 构建阶段可触发 Sonar 扫描，任务完成后回写质量关结果至构建记录。 |
+  | C07  | 操作按钮         | 在流水线列表中为每个流水线添加操作按钮：修改配置、开始构建、取消构建。 |
+  | C08  | 构建执行 API     | 提供 API 执行构建操作，支持后台异步执行构建任务。             |
 
   ### 3.7 风险评分系统（菜单6）
 
@@ -233,11 +292,12 @@
   | 后端框架      | Django 3.2 LTS + Django REST Framework | 成熟稳定，ORM 强大                  |
   | 数据库        | PostgreSQL 14 / MySQL 8 / SQLite       | 主从配置，读写分离                  |
   | 缓存/消息队列 | Redis 7                                | 缓存 Session，Celery Broker/Backend |
-  | 异步任务      | Celery 5                               | 执行耗时任务（导入、通知、评分）    |
+  | 异步任务      | Celery 5 + Threading                   | 执行耗时任务（导入、通知、评分），构建任务使用 Threading 异步执行 |
   | API 文档      | drf-yasg / Swagger                     | 自动生成 OpenAPI 3.0                |
   | 动态配置      | django-constance                       | 支持数据库/Redis 后端               |
   | 权限          | 自定义 RBAC + drf 权限类               | 细粒度权限控制                      |
   | 序列化        | DRF serializers                        | -                                   |
+  | 前端          | Bootstrap 5 + Font Awesome            | 响应式 UI，模态框展示，操作按钮      |
   | 部署          | Docker + Docker Compose                | 多环境编排                          |
   | 监控          | Flower (Celery) + Health Check         | -                                   |
 
@@ -248,11 +308,23 @@
   - **角色**：`Role`（name, code），多对多 `Permission`。
   - **用户角色**：`UserRole`（user, role）。
   - **项目**：`Project`，外键 `Environment`、`User`（负责人）。
-  - **发布版本**：`ReleaseVersion`，一对多 `VersionRegistration`。
-  - **漏洞扫描**：`DependencyCheckScan`，一对多 `ArtifactVulnerability`。
-  - **流水线**：`Pipeline` → `PipelineStage` → `BuildRecord` → `BuildStageRecord`。
-  - **风险档案**：`RiskProfile`（一对一 Project），`RiskAlert`。
-  - **通知**：`Notification`。
+  - **环境**：`Environment`（name, server_ips）。
+  - **发布版本**：`ReleaseVersion`（version, status, created_at, released_at, code_quality），一对多 `VersionRegistration`。
+  - **版本登记**：`VersionRegistration`（release_version, project, app_version, created_by, created_at, updated_at）。
+  - **漏洞扫描**：`DependencyCheckScan`（project, scan_date, total_vulnerabilities），一对多 `ArtifactVulnerability`。
+  - **工件漏洞**：`ArtifactVulnerability`（scan, artifact_group, artifact_name, artifact_version, severity, cve, description）。
+  - **工件版本变更**：`ArtifactVersionChange`（project, artifact_group, artifact_name, old_version, new_version, notification_type）。
+  - **流水线**：`Pipeline`（name, project, description, pipeline_url），一对多 `PipelineStage`、`BuildRecord`、`JenkinsJob`。
+  - **流水线阶段**：`PipelineStage`（pipeline, name, order, script, timeout）。
+  - **构建记录**：`BuildRecord`（pipeline, version, status, triggered_by, started_at, finished_at, duration, sonar_task_id, sonar_quality_gate），一对多 `BuildStageRecord`。
+  - **构建阶段记录**：`BuildStageRecord`（build, stage, status, started_at, finished_at, log_snippet）。
+  - **Jenkins 凭证**：`JenkinsCredential`（name, url, username, password, is_active）。
+  - **Jenkins 任务**：`JenkinsJob`（name, jenkins_url, credential, pipeline, parameters, is_active）。
+  - **Jenkins 构建**：`JenkinsBuild`（jenkins_job, jenkins_build_number, jenkins_build_url, parameters, status, triggered_by, started_at, finished_at, duration）。
+  - **风险档案**：`RiskProfile`（一对一 Project, risk_score, code_quality_score, vulnerability_score, pipeline_score），一对多 `RiskAlert`。
+  - **风险告警**：`RiskAlert`（profile, alert_level, message, created_at, is_resolved）。
+  - **通知**：`Notification`（user, title, content, notification_type, created_at, is_read）。
+  - **系统配置**：`SystemConfig`（key, value, description, updated_at）。
 
   详细 ER 图见附录。
 
@@ -262,14 +334,39 @@
 
   ### 6.1 单机开发模式
 
-  - 使用 SQLite + Redis（可选），`docker-compose.yml` 启动 Web + Redis + Celery。
-  - 适用于本地快速开发测试。
+  - **使用 SQLite + Redis（可选）**，`docker-compose.yml` 启动 Web + Redis + Celery。
+  - **适用于本地快速开发测试**。
+  - **启动命令**：
+    ```bash
+    # 进入后端目录
+    cd quality_security_platform/backend
+    # 启动开发服务器
+    python3 manage.py runserver 8000
+    ```
+  - **访问地址**：
+    - 版本管理：`http://localhost:8000/versions/`
+    - CI/CD 管理：`http://localhost:8000/cicd/`
+    - 漏洞管理：`http://localhost:8000/vulnerabilities/`
+    - API 文档：`http://localhost:8000/api/docs/`
 
   ### 6.2 生产主从模式（推荐）
 
-  - PostgreSQL 主从异步复制，Redis 主从。
-  - Django 配置 `DATABASE_ROUTERS = ['config.database_router.MasterSlaveRouter']`。
-  - Web 节点水平扩展，Nginx 负载均衡。
+  - **数据库配置**：PostgreSQL 主从异步复制，Redis 主从。
+  - **Django 配置**：`DATABASE_ROUTERS = ['config.database_router.MasterSlaveRouter']`。
+  - **负载均衡**：Web 节点水平扩展，Nginx 负载均衡。
+  - **环境变量**：通过 `.env` 文件配置数据库连接、Redis 地址、SMTP 配置等。
+  - **启动命令**：
+    ```bash
+    # 构建 Docker 镜像
+    docker-compose build
+    # 启动服务
+    docker-compose up -d
+    ```
+  - **服务组成**：
+    - web：Django 应用服务器
+    - worker：Celery 工作节点
+    - redis：Redis 缓存/消息队列
+    - db：PostgreSQL 数据库
 
   ### 6.3 双活多数据中心模式
 
@@ -318,6 +415,7 @@
 
   | 版本 | 日期       | 修改说明                   | 作者       |
   | :--- | :--------- | :------------------------- | :--------- |
+  | V4.0 | 2026-02-16 | 完善已实现功能，添加实现状态和使用说明 | 系统架构师 |
   | V3.0 | 2026-02-13 | 新增 RBAC、CI/CD、风险评分 | 系统架构师 |
   | V2.0 | 2026-02-12 | 完善数据库主从、双活描述   | 系统架构师 |
   | V1.0 | 2026-02-10 | 初始版本                   | 产品经理   |

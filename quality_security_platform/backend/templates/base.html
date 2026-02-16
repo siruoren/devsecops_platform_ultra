@@ -34,6 +34,86 @@
     <!-- 本地 Bootstrap JS -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script>
+        // 加载网站设置
+        async function loadSiteSettings() {
+            try {
+                // 添加时间戳参数，禁用缓存
+                const timestamp = new Date().getTime();
+                const res = await fetch(`/api/system/get-site-settings/?t=${timestamp}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    const settings = data.settings;
+                    console.log('加载到的网站设置:', settings);
+                    
+                    // 应用网站标题
+                    if (settings.page_title) {
+                        document.title = settings.page_title;
+                        console.log('更新页面标题为:', settings.page_title);
+                    }
+                    
+                    // 应用网站名称，替换页面中的"质量安全平台"文本
+                    if (settings.site_name) {
+                        // 替换文本内容
+                        const elements = document.querySelectorAll('*');
+                        elements.forEach(element => {
+                            if (element.childNodes.length === 1 && element.firstChild.nodeType === Node.TEXT_NODE) {
+                                if (element.textContent.includes('质量安全平台')) {
+                                    // 替换所有包含"质量安全平台"的文本，包括"质量安全平台jj"等变体
+                                    element.textContent = element.textContent.replace(/质量安全平台[\s\S]*/g, settings.site_name);
+                                    console.log('更新文本内容:', element.textContent);
+                                }
+                            }
+                        });
+                        
+                        // 替换属性值
+                        const attributes = ['alt', 'title', 'placeholder'];
+                        elements.forEach(element => {
+                            attributes.forEach(attr => {
+                                if (element.hasAttribute(attr)) {
+                                    const value = element.getAttribute(attr);
+                                    if (value && value.includes('质量安全平台')) {
+                                        // 替换所有包含"质量安全平台"的属性值
+                                        element.setAttribute(attr, value.replace(/质量安全平台[\s\S]*/g, settings.site_name));
+                                        console.log('更新属性值:', attr, element.getAttribute(attr));
+                                    }
+                                }
+                            });
+                        });
+                    }
+                    
+                    // 应用网站主题
+                    if (settings.primary_color) {
+                        document.documentElement.style.setProperty('--primary-color', settings.primary_color);
+                    }
+                    if (settings.secondary_color) {
+                        document.documentElement.style.setProperty('--secondary-color', settings.secondary_color);
+                    }
+                    if (settings.background_color) {
+                        document.body.style.backgroundColor = settings.background_color;
+                    }
+                    
+                    // 应用企业图标
+                    if (settings.company_logo) {
+                        const logoElements = document.querySelectorAll('img[alt*="logo"], img[alt*="图标"]');
+                        logoElements.forEach(element => {
+                            element.src = `/media/${settings.company_logo}?t=${timestamp}`;
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('加载网站设置失败:', err);
+            }
+        }
+        
+        // 页面加载时加载网站设置
+        window.addEventListener('load', loadSiteSettings);
+        
         // 原有 JavaScript 代码保持不变
         function toggleSidebar() { ... }
         ...

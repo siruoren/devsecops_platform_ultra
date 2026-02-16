@@ -2,7 +2,7 @@
   <nav id="sidebar" :class="{ active: isCollapsed }">
     <div class="sidebar-header">
       <h3>QSP</h3>
-      <small>质量安全平台 v0.0.1</small>
+      <small>{{ siteName }} v0.0.1</small>
     </div>
     <ul class="components list-unstyled">
       <li v-for="item in menuItems" :key="item.path" :class="{ active: $route.path === item.path }">
@@ -21,12 +21,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import api from '@/api'
 
 const route = useRoute()
 // isCollapsed 由 Navbar 的 toggleSidebar 切换类名控制，此处只需监听类名变化
 const isCollapsed = ref(false)
+const siteName = ref('质量安全平台')
 
 // 可选：监听 sidebar 类名变化，同步 isCollapsed 状态
 // 但此处不需要，因为样式切换直接基于类名
@@ -41,6 +43,30 @@ const menuItems = [
   { path: '/risk', name: '风险看板', icon: 'fas fa-exclamation-triangle' },
   { path: '/system', name: '系统管理', icon: 'fas fa-sliders-h' },
 ]
+
+// 加载网站设置
+const loadSiteSettings = async () => {
+  try {
+    const timestamp = new Date().getTime()
+    const res = await api.get(`/system/get-site-settings/?t=${timestamp}`)
+    if (res.data.status === 'success') {
+      const settings = res.data.settings
+      console.log('加载到的网站设置:', settings)
+      
+      // 应用网站名称
+      if (settings.site_name) {
+        siteName.value = settings.site_name
+        console.log('更新网站名称为:', settings.site_name)
+      }
+    }
+  } catch (error) {
+    console.error('加载网站设置失败:', error)
+  }
+}
+
+onMounted(() => {
+  loadSiteSettings()
+})
 </script>
 
 <style scoped>
