@@ -30,6 +30,9 @@ schema_view = get_schema_view(
 
 
 urlpatterns = [
+    # 版本管理页面（优先匹配）
+    path('versions/', TemplateView.as_view(template_name='versions.html'), name='versions'),
+
     # Web 界面路由
     path('', include('web.urls')),
 
@@ -72,7 +75,7 @@ urlpatterns = [
     path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
     path('users/', TemplateView.as_view(template_name='users.html'), name='users'),
     path('projects/', TemplateView.as_view(template_name='projects.html'), name='projects'),
-    path('versions/', TemplateView.as_view(template_name='versions.html'), name='versions'),
+    # path('versions/', TemplateView.as_view(template_name='versions.html'), name='versions'),
     path('vulnerabilities/', TemplateView.as_view(template_name='vulnerabilities.html'), name='vulnerabilities'),
     path('cicd/', TemplateView.as_view(template_name='cicd.html'), name='cicd'),
     path('risk/', TemplateView.as_view(template_name='risk.html'), name='risk'),
@@ -88,13 +91,20 @@ if settings.DEBUG:
 # 在 Django 应用加载后设置 SIMPLEUI_LOGO
 try:
     from django.conf import settings
-    from constance import config
+    import os
+    import json
     
-    # 动态设置 SIMPLEUI_LOGO
-    company_logo = getattr(config, 'COMPANY_LOGO', '')
-    if company_logo:
-        settings.SIMPLEUI_LOGO = f'/media/{company_logo}'
-    else:
-        settings.SIMPLEUI_LOGO = None
+    # 配置文件路径
+    CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'config', 'site_settings.json')
+    
+    # 读取配置
+    if os.path.exists(CONFIG_FILE_PATH):
+        with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
+            company_logo = config_data.get('COMPANY_LOGO', '')
+            if company_logo:
+                settings.SIMPLEUI_LOGO = f'/media/{company_logo}'
+            else:
+                settings.SIMPLEUI_LOGO = None
 except Exception as e:
     print(f"设置 SIMPLEUI_LOGO 失败: {e}")

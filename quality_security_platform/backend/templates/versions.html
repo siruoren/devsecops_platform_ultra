@@ -56,6 +56,54 @@
     </div>
 </div>
 
+<!-- 版本详情模态框 -->
+<div class="modal fade" id="versionDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="versionDetailModalTitle">版本详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 class="fw-semibold">版本信息</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>版本号：</strong><span id="detailVersionNumber"></span></p>
+                            <p><strong>创建时间：</strong><span id="detailCreatedAt"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>封板时间：</strong><span id="detailReleasedAt"></span></p>
+                            <p><strong>状态：</strong><span id="detailStatus"></span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h6 class="fw-semibold">登记的应用版本</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>应用名称</th>
+                                    <th>应用版本号</th>
+                                </tr>
+                            </thead>
+                            <tbody id="registrationTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="noRegistrations" class="text-center text-muted mt-4" style="display: none;">
+                        暂无应用版本登记
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 async function fetchVersions() {
     const res = await fetch('/api/versions/', { credentials: 'include' });
@@ -72,7 +120,7 @@ function renderVersions(versions) {
         const statusText = v.status === 'developing' ? '开发中' : '已封板';
         tbody.innerHTML += `
             <tr>
-                <td class="fw-semibold"><a href="#" class="text-decoration-none">${v.version}</a></td>
+                <td class="fw-semibold"><a href="#" class="text-decoration-none" onclick="showVersionDetail(${v.id})"><i class="fas fa-info-circle me-1"></i>${v.version}</a></td>
                 <td>${new Date(v.created_at).toLocaleDateString()}</td>
                 <td>${v.released_at ? new Date(v.released_at).toLocaleDateString() : '--'}</td>
                 <td><span class="badge ${statusClass}">${statusText}</span></td>
@@ -87,6 +135,51 @@ function renderVersions(versions) {
     });
 }
 
+async function showVersionDetail(versionId) {
+    try {
+        const res = await fetch(`/api/versions/${versionId}/`, { credentials: 'include' });
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+            const version = data.data;
+            
+            // 填充版本信息
+            document.getElementById('detailVersionNumber').textContent = version.version;
+            document.getElementById('detailCreatedAt').textContent = new Date(version.created_at).toLocaleString();
+            document.getElementById('detailReleasedAt').textContent = version.released_at ? new Date(version.released_at).toLocaleString() : '--';
+            document.getElementById('detailStatus').textContent = version.status === 'developing' ? '开发中' : '已封板';
+            
+            // 填充登记的应用版本
+            const registrationBody = document.getElementById('registrationTableBody');
+            const noRegistrations = document.getElementById('noRegistrations');
+            
+            registrationBody.innerHTML = '';
+            
+            if (version.registrations && version.registrations.length > 0) {
+                noRegistrations.style.display = 'none';
+                version.registrations.forEach(reg => {
+                    registrationBody.innerHTML += `
+                        <tr>
+                            <td>${reg.project}</td>
+                            <td>${reg.app_version}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                noRegistrations.style.display = 'block';
+            }
+            
+            // 显示模态框
+            new bootstrap.Modal(document.getElementById('versionDetailModal')).show();
+        } else {
+            alert('获取版本详情失败');
+        }
+    } catch (error) {
+        console.error('获取版本详情失败:', error);
+        alert('获取版本详情失败');
+    }
+}
+
 function clearVersionForm() {
     document.getElementById('versionId').value = '';
     document.getElementById('versionNumber').value = '';
@@ -97,12 +190,17 @@ function clearVersionForm() {
 function editVersion(id) {
     fetch(`/api/versions/${id}/`, { credentials: 'include' })
         .then(res => res.json())
-        .then(v => {
-            document.getElementById('versionId').value = v.id;
-            document.getElementById('versionNumber').value = v.version;
-            document.getElementById('versionStatus').value = v.status;
-            document.getElementById('versionModalTitle').textContent = '编辑发布版本';
-            new bootstrap.Modal(document.getElementById('versionModal')).show();
+        .then(data => {
+            if (data.status === 'success') {
+                const v = data.data;
+                document.getElementById('versionId').value = v.id;
+                document.getElementById('versionNumber').value = v.version;
+                document.getElementById('versionStatus').value = v.status;
+                document.getElementById('versionModalTitle').textContent = '编辑发布版本';
+                new bootstrap.Modal(document.getElementById('versionModal')).show();
+            } else {
+                alert('获取版本信息失败');
+            }
         });
 }
 
@@ -120,12 +218,13 @@ function saveVersion() {
         body: JSON.stringify(data),
         credentials: 'include'
     })
-    .then(res => {
-        if (res.ok) {
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
             bootstrap.Modal.getInstance(document.getElementById('versionModal')).hide();
             fetchVersions();
         } else {
-            res.json().then(err => alert('保存失败'));
+            alert('保存失败: ' + (data.message || '未知错误'));
         }
     });
 }
@@ -133,9 +232,13 @@ function saveVersion() {
 function deleteVersion(id) {
     if (!confirm('确认删除该版本吗？')) return;
     fetch(`/api/versions/${id}/`, { method: 'DELETE', credentials: 'include' })
-        .then(res => {
-            if (res.ok) fetchVersions();
-            else alert('删除失败');
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                fetchVersions();
+            } else {
+                alert('删除失败: ' + (data.message || '未知错误'));
+            }
         });
 }
 

@@ -136,12 +136,6 @@ CONSTANCE_CONFIG = {
     'SENDER_EMAIL': ('noreply@example.com', '发送人邮箱'),
     'SONAR_HOST_URL': ('http://localhost:9000', 'SonarQube地址'),
     'SONAR_TOKEN': ('', 'SonarQube Token'),
-    # 网站标题设置
-    'SITE_HEADER': ('质量安全平台', '登录页面标题'),
-    'SITE_TITLE': ('质量安全平台', '浏览器标签标题'),
-    'INDEX_TITLE': ('系统管理', '首页标题'),
-    # 企业图标
-    'COMPANY_LOGO': ('', '企业图标路径'),
 }
 
 # SimpleUI 配置
@@ -149,7 +143,7 @@ CONSTANCE_CONFIG = {
 # 我们将在 urls.py 中处理这个问题
 
 SIMPLEUI_CONFIG = {
-    'system_keep': True,
+    'system_keep': False,
     'menu_display': ['用户与权限', '项目管理', '版本管理', 'CI/CD管理', '风险管理', '系统管理', '其他'],
     'menus': [
         {
@@ -233,6 +227,21 @@ SIMPLEUI_CONFIG = {
                     'name': '构建阶段记录',
                     'url': '/admin/ci_cd/buildstagerecord/',
                     'icon': 'fas fa-tasks'
+                },
+                {
+                    'name': 'Jenkins凭证管理',
+                    'url': '/admin/ci_cd/jenkinscredential/',
+                    'icon': 'fas fa-key'
+                },
+                {
+                    'name': 'Jenkins任务管理',
+                    'url': '/admin/ci_cd/jenkinsjob/',
+                    'icon': 'fas fa-tasks'
+                },
+                {
+                    'name': 'Jenkins构建记录',
+                    'url': '/admin/ci_cd/jenkinsbuild/',
+                    'icon': 'fas fa-play'
                 }
             ]
         },
