@@ -1,10 +1,6 @@
 from django.contrib import admin
 from django.conf import settings
-import os
-import json
-
-# 配置文件路径
-CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'config', 'site_settings.json')
+from apps.system.models import SystemConfig
 
 # 默认配置
 DEFAULT_SETTINGS = {
@@ -15,12 +11,21 @@ DEFAULT_SETTINGS = {
 
 # 读取配置
 def read_site_settings():
-    """读取网站设置"""
+    """从数据库中读取网站设置"""
     try:
-        if os.path.exists(CONFIG_FILE_PATH):
-            with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        # 从数据库中获取所有配置
+        configs = SystemConfig.objects.all()
+        settings_data = {}
+        for config in configs:
+            settings_data[config.key] = config.value
+        
+        # 如果没有配置，使用默认值
+        if not settings_data:
+            return DEFAULT_SETTINGS.copy()
+        
+        return settings_data
     except Exception:
+        # 如果数据库连接失败，使用默认配置
         pass
     return DEFAULT_SETTINGS.copy()
 

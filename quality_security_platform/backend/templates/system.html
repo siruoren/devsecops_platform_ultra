@@ -80,11 +80,11 @@
             <h5 class="section-title"><i class="fas fa-globe me-2"></i>网站设置</h5>
             <div class="mb-3">
                 <label class="form-label">页面标题</label>
-                <input type="text" id="pageTitle" class="form-control">
+                <input type="text" id="page_title" class="form-control">
             </div>
             <div class="mb-3">
                 <label class="form-label">网站名称</label>
-                <input type="text" id="siteName" class="form-control">
+                <input type="text" id="site_name" class="form-control">
             </div>
             <div class="mb-3">
                 <label class="form-label">网站描述</label>
@@ -163,8 +163,8 @@ async function loadConfig() {
             document.getElementById('dbHost').value = settings.db_host || 'localhost';
             document.getElementById('dbPort').value = settings.db_port || 5432;
             document.getElementById('dbName').value = settings.db_name || 'qsp';
-            document.getElementById('pageTitle').value = settings.page_title || '';
-            document.getElementById('siteName').value = settings.site_name || '';
+            document.getElementById('page_title').value = settings.page_title || '';
+            document.getElementById('site_name').value = settings.site_name || '';
             document.getElementById('siteDescription').value = settings.site_description || '';
             document.getElementById('primaryColor').value = settings.primary_color || '#667eea';
             document.getElementById('secondaryColor').value = settings.secondary_color || '#f5576c';
@@ -204,12 +204,14 @@ function saveConfig() {
         db_host: document.getElementById('dbHost').value,
         db_port: parseInt(document.getElementById('dbPort').value),
         db_name: document.getElementById('dbName').value,
-        page_title: document.getElementById('pageTitle').value,
-        site_name: document.getElementById('siteName').value,
+        page_title: document.getElementById('page_title').value,
+        site_name: document.getElementById('site_name').value,
         site_description: document.getElementById('siteDescription').value,
         primary_color: document.getElementById('primaryColor').value,
         secondary_color: document.getElementById('secondaryColor').value,
         background_color: document.getElementById('backgroundColor').value,
+        SITE_HEADER: document.getElementById('site_name').value,  // 保存为SITE_HEADER
+        SITE_TITLE: document.getElementById('page_title').value,   // 保存为SITE_TITLE
     };
     console.log('保存网站设置:', data);
     fetch('/api/system/save-site-settings/', {

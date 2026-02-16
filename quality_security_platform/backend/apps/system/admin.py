@@ -1,16 +1,27 @@
 from django.contrib import admin
-from .models import Notification
-from constance import config
+from .models import Notification, SystemConfig
 
-# 设置站点标题（使用动态配置）
+# 设置站点标题（从数据库中读取配置）
 def get_admin_site_header():
-    return getattr(config, 'SITE_HEADER', '质量安全平台')
+    try:
+        config = SystemConfig.objects.filter(key='SITE_HEADER').first()
+        return config.value if config else '质量安全平台'
+    except Exception:
+        return '质量安全平台'
 
 def get_admin_site_title():
-    return getattr(config, 'SITE_TITLE', '质量安全平台')
+    try:
+        config = SystemConfig.objects.filter(key='SITE_TITLE').first()
+        return config.value if config else '质量安全平台'
+    except Exception:
+        return '质量安全平台'
 
 def get_admin_index_title():
-    return getattr(config, 'INDEX_TITLE', '系统管理')
+    try:
+        config = SystemConfig.objects.filter(key='INDEX_TITLE').first()
+        return config.value if config else '系统管理'
+    except Exception:
+        return '系统管理'
 
 # 设置站点标题
 admin.site.site_header = get_admin_site_header()  # 登录页面标题

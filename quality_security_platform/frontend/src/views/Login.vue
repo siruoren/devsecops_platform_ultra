@@ -3,7 +3,7 @@
     <div class="col-md-4">
       <div class="card p-4">
         <div class="text-center mb-4">
-          <h2 class="fw-bold">质量安全平台</h2>
+          <h2 class="fw-bold">{{ siteName }}</h2>
           <p class="text-secondary">QSP v0.0.1</p>
         </div>
 
@@ -94,6 +94,8 @@ const authConfig = ref({
   auth_type: 'local',
   available_auth_types: [{ type: 'local', name: '本地认证', enabled: true }]
 })
+const siteName = ref('质量安全平台')
+const pageTitle = ref('登录 - 质量安全平台')
 
 // 获取认证配置
 const fetchAuthConfig = async () => {
@@ -103,6 +105,33 @@ const fetchAuthConfig = async () => {
     activeAuthType.value = res.data.auth_type
   } catch (error) {
     console.error('获取认证配置失败', error)
+  }
+}
+
+// 加载网站设置
+const loadSiteSettings = async () => {
+  try {
+    const timestamp = new Date().getTime()
+    const res = await api.get(`/system/get-site-settings/?t=${timestamp}`)
+    if (res.data.status === 'success') {
+      const settings = res.data.settings
+      console.log('加载到的网站设置:', settings)
+      
+      // 应用网站标题
+      if (settings.page_title) {
+        pageTitle.value = `登录 - ${settings.page_title}`
+        document.title = pageTitle.value
+        console.log('更新页面标题为:', pageTitle.value)
+      }
+      
+      // 应用网站名称
+      if (settings.site_name) {
+        siteName.value = settings.site_name
+        console.log('更新网站名称为:', settings.site_name)
+      }
+    }
+  } catch (error) {
+    console.error('加载网站设置失败:', error)
   }
 }
 
@@ -163,5 +192,6 @@ const redirectToCAS = () => {
 
 onMounted(() => {
   fetchAuthConfig()
+  loadSiteSettings()
 })
 </script>
