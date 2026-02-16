@@ -75,6 +75,59 @@
 </div>
 
 <div class="row mt-2">
+    <div class="col-md-6">
+        <div class="glass-card p-4 mb-4">
+            <h5 class="section-title"><i class="fas fa-globe me-2"></i>网站设置</h5>
+            <div class="mb-3">
+                <label class="form-label">页面标题</label>
+                <input type="text" id="pageTitle" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">网站名称</label>
+                <input type="text" id="siteName" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">网站描述</label>
+                <textarea id="siteDescription" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+
+        <div class="glass-card p-4 mb-4">
+            <h5 class="section-title"><i class="fas fa-palette me-2"></i>网站主题</h5>
+            <div class="mb-3">
+                <label class="form-label">主色调</label>
+                <input type="color" id="primaryColor" class="form-control form-control-color">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">次要色调</label>
+                <input type="color" id="secondaryColor" class="form-control form-control-color">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">背景颜色</label>
+                <input type="color" id="backgroundColor" class="form-control form-control-color">
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="glass-card p-4 mb-4">
+            <h5 class="section-title"><i class="fas fa-image me-2"></i>企业图标</h5>
+            <div class="mb-3">
+                <label class="form-label">上传图标</label>
+                <input type="file" id="logoFile" class="form-control" accept="image/*">
+            </div>
+            <div class="mb-3">
+                <img id="logoPreview" src="" alt="企业图标预览" class="img-thumbnail" style="max-width: 200px; display: none;">
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="uploadLogo()">上传</button>
+                <button class="btn btn-secondary" onclick="resetLogo()">重置</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2">
     <div class="col-12">
         <div class="glass-card p-4">
             <div class="d-flex justify-content-end">
@@ -86,22 +139,55 @@
 
 <script>
 async function loadConfig() {
-    // 假设有 /api/system/config/ 接口
     try {
-        const res = await fetch('/api/system/config/', { credentials: 'include' });
-        const config = await res.json();
-        document.getElementById('smtpServer').value = config.smtp_server || '';
-        document.getElementById('smtpPort').value = config.smtp_port || 587;
-        document.getElementById('smtpEncryption').value = config.smtp_encryption || 'tls';
-        document.getElementById('smtpUsername').value = config.smtp_username || '';
-        document.getElementById('senderEmail').value = config.sender_email || '';
-        document.getElementById('maxMessages').value = config.max_daily_messages || 100;
-        document.getElementById('maxEmails').value = config.max_daily_emails || 500;
-        document.getElementById('dbHost').value = config.db_host || 'localhost';
-        document.getElementById('dbPort').value = config.db_port || 5432;
-        document.getElementById('dbName').value = config.db_name || 'qsp';
+        // 添加时间戳参数，禁用缓存
+        const timestamp = new Date().getTime();
+        const res = await fetch(`/api/system/get-site-settings/?t=${timestamp}`, {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        });
+        const data = await res.json();
+        console.log('加载配置响应:', data);
+        if (data.status === 'success') {
+            const settings = data.settings;
+            document.getElementById('smtpServer').value = settings.smtp_server || '';
+            document.getElementById('smtpPort').value = settings.smtp_port || 587;
+            document.getElementById('smtpEncryption').value = settings.smtp_encryption || 'tls';
+            document.getElementById('smtpUsername').value = settings.smtp_username || '';
+            document.getElementById('senderEmail').value = settings.sender_email || '';
+            document.getElementById('maxMessages').value = settings.max_daily_messages || 100;
+            document.getElementById('maxEmails').value = settings.max_daily_emails || 500;
+            document.getElementById('dbHost').value = settings.db_host || 'localhost';
+            document.getElementById('dbPort').value = settings.db_port || 5432;
+            document.getElementById('dbName').value = settings.db_name || 'qsp';
+            document.getElementById('pageTitle').value = settings.page_title || '';
+            document.getElementById('siteName').value = settings.site_name || '';
+            document.getElementById('siteDescription').value = settings.site_description || '';
+            document.getElementById('primaryColor').value = settings.primary_color || '#667eea';
+            document.getElementById('secondaryColor').value = settings.secondary_color || '#f5576c';
+            document.getElementById('backgroundColor').value = settings.background_color || '#f5f7fa';
+            
+            // 显示logo预览
+            if (settings.company_logo) {
+                const logoPreview = document.getElementById('logoPreview');
+                const logoUrl = `/media/${settings.company_logo}?t=${timestamp}`;
+                logoPreview.src = logoUrl;
+                logoPreview.style.display = 'block';
+                console.log('显示logo预览:', logoUrl);
+            } else {
+                const logoPreview = document.getElementById('logoPreview');
+                logoPreview.src = '';
+                logoPreview.style.display = 'none';
+                console.log('没有logo配置，隐藏预览');
+            }
+        } else {
+            console.error('加载配置失败:', data.message);
+        }
     } catch (err) {
-        console.error('加载配置失败', err);
+        console.error('加载配置失败:', err);
     }
 }
 
@@ -118,18 +204,113 @@ function saveConfig() {
         db_host: document.getElementById('dbHost').value,
         db_port: parseInt(document.getElementById('dbPort').value),
         db_name: document.getElementById('dbName').value,
+        page_title: document.getElementById('pageTitle').value,
+        site_name: document.getElementById('siteName').value,
+        site_description: document.getElementById('siteDescription').value,
+        primary_color: document.getElementById('primaryColor').value,
+        secondary_color: document.getElementById('secondaryColor').value,
+        background_color: document.getElementById('backgroundColor').value,
     };
-    fetch('/api/system/config/', {
-        method: 'PUT',
+    console.log('保存网站设置:', data);
+    fetch('/api/system/save-site-settings/', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
         credentials: 'include'
     })
     .then(res => {
-        if (res.ok) alert('保存成功');
-        else alert('保存失败');
+        console.log('保存网站设置响应状态:', res.status);
+        return res.json();
     })
-    .catch(err => console.error(err));
+    .then(data => {
+        console.log('保存网站设置响应数据:', data);
+        if (data.status === 'success') {
+            alert('保存成功');
+            // 重新加载配置，确保表单显示最新值
+            loadConfig();
+        } else {
+            alert('保存失败: ' + data.message);
+        }
+    })
+    .catch(err => {
+        console.error('保存网站设置失败:', err);
+        alert('保存失败: ' + err.message);
+    });
+}
+
+function uploadLogo() {
+    const fileInput = document.getElementById('logoFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('请选择要上传的文件');
+        return;
+    }
+    
+    console.log('上传文件:', file);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    fetch('/api/system/upload-logo/', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+    })
+    .then(res => {
+        console.log('上传文件响应状态:', res.status);
+        return res.json();
+    })
+    .then(data => {
+        console.log('上传文件响应数据:', data);
+        if (data.status === 'success') {
+            alert('上传成功');
+            // 更新logo预览
+            const logoPreview = document.getElementById('logoPreview');
+            const logoUrl = `/media/${data.file_path}`;
+            logoPreview.src = logoUrl;
+            logoPreview.style.display = 'block';
+            console.log('更新logo预览:', logoUrl);
+            // 重新加载配置，确保表单显示最新值
+            loadConfig();
+        } else {
+            alert('上传失败: ' + data.message);
+        }
+    })
+    .catch(err => {
+        console.error('上传文件失败:', err);
+        alert('上传失败: ' + err.message);
+    });
+}
+
+function resetLogo() {
+    console.log('重置企业图标');
+    fetch('/api/system/reset-company-logo/', {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(res => {
+        console.log('重置企业图标响应状态:', res.status);
+        return res.json();
+    })
+    .then(data => {
+        console.log('重置企业图标响应数据:', data);
+        if (data.status === 'success') {
+            alert('重置成功');
+            // 清除logo预览
+            const logoPreview = document.getElementById('logoPreview');
+            logoPreview.src = '';
+            logoPreview.style.display = 'none';
+            console.log('清除logo预览');
+            // 重新加载配置，确保表单显示最新值
+            loadConfig();
+        } else {
+            alert('重置失败: ' + data.message);
+        }
+    })
+    .catch(err => {
+        console.error('重置企业图标失败:', err);
+        alert('重置失败: ' + err.message);
+    });
 }
 
 loadConfig();

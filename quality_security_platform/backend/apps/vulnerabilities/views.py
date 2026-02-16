@@ -232,3 +232,174 @@ def get_project_vulnerability_stats(request):
             return JsonResponse({'status': 'error', 'message': '获取项目漏洞统计失败'})
     
     return JsonResponse({'status': 'error', 'message': '请求方式错误'})
+
+
+def get_project_artifact_graph(request):
+    """
+    获取项目‑工件关系图谱数据
+    """
+    if request.method == 'GET':
+        try:
+            # 获取项目ID
+            project_id = request.GET.get('project_id')
+            
+            # 验证参数
+            if not project_id:
+                return JsonResponse({'status': 'error', 'message': '缺少项目ID参数'})
+            
+            # 获取项目
+            project = Project.objects.get(id=project_id)
+            
+            # 查询该项目的所有扫描记录
+            scans = DependencyCheckScan.objects.filter(project=project)
+            
+            # 构建节点和边
+            nodes = []
+            edges = []
+            artifact_ids = set()
+            
+            # 添加项目节点
+            project_node = {
+                'id': f'project_{project.id}',
+                'label': project.name,
+                'type': 'project',
+                'size': 25,
+                'color': '#4CAF50'
+            }
+            nodes.append(project_node)
+            
+            # 遍历扫描记录，添加工件节点和边
+            for scan in scans:
+                vulnerabilities = ArtifactVulnerability.objects.filter(scan=scan)
+                for vuln in vulnerabilities:
+                    artifact_key = f'artifact_{vuln.artifact_name}_{vuln.artifact_version}'
+                    if artifact_key not in artifact_ids:
+                        artifact_ids.add(artifact_key)
+                        
+                        # 确定工件节点颜色（根据漏洞严重性）
+                        severity_color_map = {
+                            'critical': '#FF5252',
+                            'high': '#FF9800',
+                            'medium': '#FFEB3B',
+                            'low': '#4CAF50',
+                            'info': '#2196F3'
+                        }
+                        artifact_color = severity_color_map.get(vuln.severity, '#9E9E9E')
+                        
+                        # 添加工件节点
+                        artifact_node = {
+                            'id': artifact_key,
+                            'label': f'{vuln.artifact_name}\n{vuln.artifact_version}',
+                            'type': 'artifact',
+                            'size': 20,
+                            'color': artifact_color
+                        }
+                        nodes.append(artifact_node)
+                        
+                        # 添加项目到工件的边
+                        edge = {
+                            'from': project_node['id'],
+                            'to': artifact_key,
+                            'label': '依赖',
+                            'color': '#9E9E9E'
+                        }
+                        edges.append(edge)
+            
+            # 构建响应数据
+            graph_data = {
+                'nodes': nodes,
+                'edges': edges
+            }
+            
+            return JsonResponse({'status': 'success', 'graph_data': graph_data})
+        except Exception as e:
+            print(f"获取项目‑工件关系图谱失败: {e}")
+            return JsonResponse({'status': 'error', 'message': '获取项目‑工件关系图谱失败'})
+    
+    return JsonResponse({'status': 'error', 'message': '请求方式错误'})
+
+
+def get_artifact_project_graph(request):
+    """
+    获取工件‑项目关系图谱数据
+    """
+    if request.method == 'GET':
+        try:
+            # 获取工件名称
+            artifact_name = request.GET.get('artifact_name')
+            
+            # 验证参数
+            if not artifact_name:
+                return JsonResponse({'status': 'error', 'message': '缺少工件名称参数'})
+            
+            # 查询包含该工件的所有漏洞记录
+            vulnerabilities = ArtifactVulnerability.objects.filter(artifact_name__icontains=artifact_name)
+            
+            # 构建节点和边
+            nodes = []
+            edges = []
+            project_ids = set()
+            artifact_ids = set()
+            
+            # 遍历漏洞记录，添加项目和工件节点及边
+            for vuln in vulnerabilities:
+                project = vuln.scan.project
+                project_key = f'project_{project.id}'
+                artifact_key = f'artifact_{vuln.artifact_name}_{vuln.artifact_version}'
+                
+                # 添加项目节点
+                if project_key not in project_ids:
+                    project_ids.add(project_key)
+                    project_node = {
+                        'id': project_key,
+                        'label': project.name,
+                        'type': 'project',
+                        'size': 25,
+                        'color': '#4CAF50'
+                    }
+                    nodes.append(project_node)
+                
+                # 添加工件节点
+                if artifact_key not in artifact_ids:
+                    artifact_ids.add(artifact_key)
+                    
+                    # 确定工件节点颜色（根据漏洞严重性）
+                    severity_color_map = {
+                        'critical': '#FF5252',
+                        'high': '#FF9800',
+                        'medium': '#FFEB3B',
+                        'low': '#4CAF50',
+                        'info': '#2196F3'
+                    }
+                    artifact_color = severity_color_map.get(vuln.severity, '#9E9E9E')
+                    
+                    artifact_node = {
+                        'id': artifact_key,
+                        'label': f'{vuln.artifact_name}\n{vuln.artifact_version}',
+                        'type': 'artifact',
+                        'size': 20,
+                        'color': artifact_color
+                    }
+                    nodes.append(artifact_node)
+                
+                # 添加工件到项目的边
+                edge = {
+                    'from': artifact_key,
+                    'to': project_key,
+                    'label': '被使用',
+                    'color': '#9E9E9E'
+                }
+                edges.append(edge)
+            
+            # 构建响应数据
+            graph_data = {
+                'nodes': nodes,
+                'edges': edges
+            }
+            
+            return JsonResponse({'status': 'success', 'graph_data': graph_data})
+        except Exception as e:
+            print(f"获取工件‑项目关系图谱失败: {e}")
+            return JsonResponse({'status': 'error', 'message': '获取工件‑项目关系图谱失败'})
+    
+    return JsonResponse({'status': 'error', 'message': '请求方式错误'})

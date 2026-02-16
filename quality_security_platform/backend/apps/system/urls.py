@@ -1,10 +1,11 @@
 from rest_framework.routers import SimpleRouter
 from django.urls import path
 from . import views
-from .views import NotificationViewSet
+from .views import NotificationViewSet, AuditLogViewSet
 
 router = SimpleRouter()
 router.register('notifications', NotificationViewSet, basename='notification')
+router.register('audit-logs', AuditLogViewSet, basename='audit-log')
 
 urlpatterns = [
     # 上传企业图标

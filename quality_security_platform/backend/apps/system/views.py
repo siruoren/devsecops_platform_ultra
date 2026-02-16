@@ -50,6 +50,10 @@ def get_site_settings(request):
     
     return JsonResponse({'status': 'error', 'message': '请求方式错误'})
 
+import os
+from django.conf import settings
+
+@csrf_exempt
 def upload_company_logo(request):
     """
     上传企业图标
@@ -63,27 +67,48 @@ def upload_company_logo(request):
             if not file:
                 return JsonResponse({'status': 'error', 'message': '缺少文件'})
             
-            # 保存文件到媒体目录
-            # 这里需要实现文件保存逻辑
+            # 确保媒体目录存在
+            logo_dir = os.path.join(settings.MEDIA_ROOT, 'logos')
+            os.makedirs(logo_dir, exist_ok=True)
             
-            return JsonResponse({'status': 'success', 'message': '企业图标上传成功', 'file_name': file.name})
+            # 保存文件到媒体目录
+            file_path = os.path.join(logo_dir, file.name)
+            with open(file_path, 'wb+') as destination:
+                for chunk in file.chunks():
+                    destination.write(chunk)
+            
+            # 保存文件路径到系统配置
+            logo_path = os.path.join('logos', file.name)
+            config, created = SystemConfig.objects.get_or_create(key='company_logo')
+            config.value = logo_path
+            config.save()
+            
+            return JsonResponse({'status': 'success', 'message': '企业图标上传成功', 'file_name': file.name, 'file_path': logo_path})
         except Exception as e:
             print(f"上传企业图标失败: {e}")
-            return JsonResponse({'status': 'error', 'message': '上传企业图标失败'})
+            return JsonResponse({'status': 'error', 'message': f'上传企业图标失败: {str(e)}'})
     
     return JsonResponse({'status': 'error', 'message': '请求方式错误'})
 
+@csrf_exempt
 def reset_company_logo(request):
     """
     重置企业图标
     """
     if request.method == 'POST':
         try:
-            # 这里需要实现重置逻辑
+            # 实现重置逻辑
+            # 删除系统配置中的企业图标设置
+            SystemConfig.objects.filter(key='company_logo').delete()
+            # 可选：删除实际的图标文件
+            logo_dir = os.path.join(settings.MEDIA_ROOT, 'logos')
+            if os.path.exists(logo_dir):
+                import shutil
+                shutil.rmtree(logo_dir)
             return JsonResponse({'status': 'success', 'message': '企业图标重置成功'})
         except Exception as e:
             print(f"重置企业图标失败: {e}")
-            return JsonResponse({'status': 'error', 'message': '重置企业图标失败'})
+            return JsonResponse({'status': 'error', 'message': f'重置企业图标失败: {str(e)}'})
     
     return JsonResponse({'status': 'error', 'message': '请求方式错误'})
 
@@ -237,7 +262,10 @@ def delete_notification(request, notification_id):
 
 
 from rest_framework.viewsets import ModelViewSet
-from .serializers import NotificationSerializer
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Notification, AuditLog
+from .serializers import NotificationSerializer, AuditLogSerializer
 
 class NotificationViewSet(ModelViewSet):
     """
@@ -254,5 +282,22 @@ class NotificationViewSet(ModelViewSet):
     def perform_create(self, serializer):
         """
         创建通知
+        """
+        serializer.save(user=self.request.user)
+
+class AuditLogViewSet(ModelViewSet):
+    """
+    审计日志视图集
+    """
+    queryset = AuditLog.objects.all().order_by('-created_at')
+    serializer_class = AuditLogSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['user', 'action', 'resource_type', 'created_at']
+    search_fields = ['description', 'ip_address', 'user_agent']
+    ordering_fields = ['created_at', 'user']
+    
+    def perform_create(self, serializer):
+        """
+        创建审计日志
         """
         serializer.save(user=self.request.user)

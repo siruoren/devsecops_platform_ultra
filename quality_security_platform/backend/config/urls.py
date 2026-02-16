@@ -36,14 +36,6 @@ urlpatterns = [
     # Web 界面路由
     path('', include('web.urls')),
 
-    # 企业图标上传
-    path('upload-logo/', upload_company_logo, name='upload_company_logo'),
-    # 保存网站设置
-    path('save-site-settings/', save_site_settings, name='save_site_settings'),
-    # 获取网站设置
-    path('get-site-settings/', get_site_settings, name='get_site_settings'),
-    # 重置企业图标
-    path('reset-logo/', reset_company_logo, name='reset_company_logo'),
     # 企业图标上传页面
     path('logo-upload/', TemplateView.as_view(template_name='logo_upload.html'), name='logo_upload_page'),
 
@@ -92,19 +84,27 @@ if settings.DEBUG:
 try:
     from django.conf import settings
     import os
-    import json
+    from apps.system.models import SystemConfig
     
-    # 配置文件路径
-    CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'config', 'site_settings.json')
-    
-    # 读取配置
-    if os.path.exists(CONFIG_FILE_PATH):
-        with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
-            company_logo = config_data.get('COMPANY_LOGO', '')
-            if company_logo:
-                settings.SIMPLEUI_LOGO = f'/media/{company_logo}'
-            else:
-                settings.SIMPLEUI_LOGO = None
+    # 从数据库读取配置
+    try:
+        company_logo_config = SystemConfig.objects.filter(key='company_logo').first()
+        if company_logo_config and company_logo_config.value:
+            settings.SIMPLEUI_LOGO = f'/media/{company_logo_config.value}'
+        else:
+            settings.SIMPLEUI_LOGO = None
+    except Exception as db_error:
+        print(f"从数据库读取公司logo失败: {db_error}")
+        # 回退到从JSON文件读取
+        CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'config', 'site_settings.json')
+        if os.path.exists(CONFIG_FILE_PATH):
+            import json
+            with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+                company_logo = config_data.get('COMPANY_LOGO', '')
+                if company_logo:
+                    settings.SIMPLEUI_LOGO = f'/media/{company_logo}'
+                else:
+                    settings.SIMPLEUI_LOGO = None
 except Exception as e:
     print(f"设置 SIMPLEUI_LOGO 失败: {e}")

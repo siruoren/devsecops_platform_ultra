@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}登录 - 质量安全平台{% endblock %}
+{% block title %}登录{% endblock %}
 {% block content %}
 <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="col-md-5">
         <div class="glass-card p-5">
             <div class="text-center mb-4">
-                <h2 class="fw-bold" style="background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">质量安全平台</h2>
+                <h2 class="fw-bold" id="siteName" style="background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">质量安全平台</h2>
                 <p class="text-secondary">QSP v0.0.1</p>
             </div>
             <form id="loginForm">
@@ -32,6 +32,43 @@
 </div>
 
 <script>
+// 加载网站设置
+async function loadSiteSettings() {
+    try {
+        // 添加时间戳参数，禁用缓存
+        const timestamp = new Date().getTime();
+        const res = await fetch(`/api/system/get-site-settings/?t=${timestamp}`, {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            const settings = data.settings;
+            
+            // 应用网站标题
+            if (settings.page_title) {
+                document.title = `登录 - ${settings.page_title}`;
+            }
+            
+            // 应用网站名称
+            if (settings.site_name) {
+                const siteNameElement = document.getElementById('siteName');
+                if (siteNameElement) {
+                    siteNameElement.textContent = settings.site_name;
+                }
+            }
+        }
+    } catch (err) {
+        console.error('加载网站设置失败:', err);
+    }
+}
+
+// 页面加载时加载网站设置
+window.addEventListener('load', loadSiteSettings);
+
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const username = document.getElementById('username').value;

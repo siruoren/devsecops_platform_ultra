@@ -33,3 +33,30 @@ class SystemConfig(models.Model):
     class Meta: db_table = 'system_configs'
     def __str__(self):
         return self.key
+
+class AuditLog(models.Model):
+    """
+    审计日志
+    """
+    ACTION_CHOICES = (
+        ('login', '登录'),
+        ('logout', '登出'),
+        ('create', '创建'),
+        ('update', '更新'),
+        ('delete', '删除'),
+        ('upload', '上传'),
+        ('download', '下载'),
+        ('execute', '执行'),
+        ('other', '其他')
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='audit_logs')
+    action = models.CharField('操作类型', max_length=20, choices=ACTION_CHOICES, default='other')
+    resource_type = models.CharField('资源类型', max_length=100, blank=True)
+    resource_id = models.CharField('资源ID', max_length=100, blank=True)
+    description = models.TextField('操作描述', blank=True)
+    ip_address = models.CharField('IP地址', max_length=50, blank=True)
+    user_agent = models.CharField('用户代理', max_length=500, blank=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    class Meta: db_table = 'system_audit_logs'
+    def __str__(self):
+        return f'{self.user.username} - {self.action} - {self.created_at}'
