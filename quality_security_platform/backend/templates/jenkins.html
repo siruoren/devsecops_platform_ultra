@@ -1,0 +1,754 @@
+{% extends "base.html" %}
+{% block active_cicd %}active{% endblock %}
+{% block title %}Jenkins 任务管理 - 质量安全平台{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title">Jenkins 任务管理</h1>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addJenkinsJobModal">
+            <i class="fas fa-plus me-2"></i>添加任务
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="glass-card p-4">
+            <h5 class="section-title">Jenkins 任务列表</h5>
+            <div class="mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="搜索任务名称...">
+            </div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>任务名称</th>
+                        <th>Jenkins URL</th>
+                        <th>凭证</th>
+                        <th>参数数量</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="jenkinsJobTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 添加 Jenkins 任务模态框 -->
+<div class="modal fade" id="addJenkinsJobModal" tabindex="-1" aria-labelledby="addJenkinsJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addJenkinsJobModalLabel">添加 Jenkins 任务</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addJenkinsJobForm">
+                    <div class="mb-3">
+                        <label for="jobName" class="form-label">任务名称</label>
+                        <input type="text" class="form-control" id="jobName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="jobDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="jobDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="jobUrl" class="form-label">Jenkins 任务 URL</label>
+                        <input type="url" class="form-control" id="jobUrl" name="jenkins_url" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="jobCredential" class="form-label">凭证</label>
+                        <select class="form-select" id="jobCredential" name="credential" required>
+                            <option value="">选择凭证</option>
+                            <!-- 动态加载凭证选项 -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="jobPipeline" class="form-label">关联流水线</label>
+                        <select class="form-select" id="jobPipeline" name="pipeline">
+                            <option value="">选择流水线</option>
+                            <!-- 动态加载流水线选项 -->
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveJenkinsJobBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 解析 Jenkins 任务模态框 -->
+<div class="modal fade" id="parseJenkinsJobModal" tabindex="-1" aria-labelledby="parseJenkinsJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="parseJenkinsJobModalLabel">解析 Jenkins 任务参数</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <div id="parseJobLoading" class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2">正在解析 Jenkins 任务参数，请稍候...</p>
+                </div>
+                <div id="parseJobResult" class="d-none">
+                    <h6>解析结果</h6>
+                    <div class="mt-3">
+                        <h6>任务参数：</h6>
+                        <div id="jobParametersList" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Jenkins 构建参数输入模态框 -->
+<div class="modal fade" id="jenkinsBuildModal" tabindex="-1" aria-labelledby="jenkinsBuildModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jenkinsBuildModalLabel">触发 Jenkins 构建</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <form id="jenkinsBuildForm">
+                    <input type="hidden" id="buildJobId" name="jenkins_job_id">
+                    <div id="buildParametersList"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="triggerBuildBtn">触发构建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Jenkins 构建详情模态框 -->
+<div class="modal fade" id="jenkinsBuildDetailModal" tabindex="-1" aria-labelledby="jenkinsBuildDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jenkinsBuildDetailModalLabel">Jenkins 构建详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6>构建信息</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>构建 ID：</strong><span id="detailBuildId"></span></p>
+                            <p><strong>Jenkins 任务：</strong><span id="detailJenkinsJob"></span></p>
+                            <p><strong>构建编号：</strong><span id="detailBuildNumber"></span></p>
+                            <p><strong>状态：</strong><span id="detailStatus"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>触发人：</strong><span id="detailTriggeredBy"></span></p>
+                            <p><strong>开始时间：</strong><span id="detailStartedAt"></span></p>
+                            <p><strong>结束时间：</strong><span id="detailFinishedAt"></span></p>
+                            <p><strong>构建时长：</strong><span id="detailDuration"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <h6>构建参数</h6>
+                    <pre id="detailParameters" class="bg-light p-3 rounded"></pre>
+                </div>
+                <div class="mb-3">
+                    <h6>构建日志</h6>
+                    <div class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">
+                        <pre id="detailLog"></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 加载 Jenkins 任务列表
+        loadJenkinsJobs();
+        
+        // 加载凭证选项
+        loadCredentials();
+        
+        // 加载流水线选项
+        loadPipelines();
+        
+        // 保存 Jenkins 任务
+        document.getElementById('saveJenkinsJobBtn').addEventListener('click', function() {
+            saveJenkinsJob();
+        });
+        
+        // 触发 Jenkins 构建
+        document.getElementById('triggerBuildBtn').addEventListener('click', function() {
+            triggerJenkinsBuild();
+        });
+    });
+    
+    // 加载 Jenkins 任务列表
+    async function loadJenkinsJobs() {
+        try {
+            const response = await fetch('/api/cicd/jenkins-jobs/', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                renderJenkinsJobs(data.jobs);
+            } else {
+                alert('加载 Jenkins 任务失败');
+            }
+        } catch (error) {
+            console.error('加载 Jenkins 任务失败:', error);
+            alert('加载 Jenkins 任务失败');
+        }
+    }
+    
+    // 渲染 Jenkins 任务列表
+    function renderJenkinsJobs(jobs) {
+        const tbody = document.getElementById('jenkinsJobTableBody');
+        tbody.innerHTML = '';
+        
+        jobs.forEach(job => {
+            const statusClass = job.is_active ? 'badge-success' : 'badge-secondary';
+            const statusText = job.is_active ? '启用' : '禁用';
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${job.name}</td>
+                    <td><a href="${job.jenkins_url}" target="_blank">${job.jenkins_url}</a></td>
+                    <td>${job.credential}</td>
+                    <td>${job.parameter_count}</td>
+                    <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    <td>${job.created_at}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-primary" onclick="parseJenkinsJob(${job.id})"><i class="fas fa-sync"></i></button>
+                            <button class="btn btn-sm btn-success" onclick="openBuildModal(${job.id})"><i class="fas fa-play"></i></button>
+                            <button class="btn btn-sm btn-info" onclick="viewJobBuilds(${job.id})"><i class="fas fa-history"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+    
+    // 加载凭证选项
+    async function loadCredentials() {
+        try {
+            // 从 API 获取凭证列表
+            const response = await fetch('/api/cicd/jenkins-credentials/', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            
+            const credentialSelect = document.getElementById('jobCredential');
+            credentialSelect.innerHTML = '<option value="">选择凭证</option>';
+            
+            if (data.status === 'success') {
+                data.credentials.forEach(credential => {
+                    const option = document.createElement('option');
+                    option.value = credential.id;
+                    option.textContent = credential.name;
+                    credentialSelect.appendChild(option);
+                });
+            } else {
+                // 模拟凭证数据
+                const credentials = [
+                    { id: 1, name: 'Jenkins 凭证 1' },
+                    { id: 2, name: 'Jenkins 凭证 2' }
+                ];
+                
+                credentials.forEach(credential => {
+                    const option = document.createElement('option');
+                    option.value = credential.id;
+                    option.textContent = credential.name;
+                    credentialSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('加载凭证失败:', error);
+            // 模拟凭证数据
+            const credentialSelect = document.getElementById('jobCredential');
+            credentialSelect.innerHTML = '<option value="">选择凭证</option>';
+            
+            const credentials = [
+                { id: 1, name: 'Jenkins 凭证 1' },
+                { id: 2, name: 'Jenkins 凭证 2' }
+            ];
+            
+            credentials.forEach(credential => {
+                const option = document.createElement('option');
+                option.value = credential.id;
+                option.textContent = credential.name;
+                credentialSelect.appendChild(option);
+            });
+        }
+    }
+    
+    // 加载流水线选项
+    async function loadPipelines() {
+        try {
+            // 从 API 获取流水线列表
+            const response = await fetch('/api/cicd/build-history/', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            
+            const pipelineSelect = document.getElementById('jobPipeline');
+            pipelineSelect.innerHTML = '<option value="">选择流水线</option>';
+            
+            if (data.status === 'success') {
+                // 提取唯一的流水线
+                const pipelineMap = new Map();
+                data.builds.forEach(build => {
+                    if (build.pipeline && !pipelineMap.has(build.pipeline_id)) {
+                        pipelineMap.set(build.pipeline_id, build.pipeline);
+                    }
+                });
+                
+                pipelineMap.forEach((name, id) => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = name;
+                    pipelineSelect.appendChild(option);
+                });
+            } else {
+                // 模拟流水线数据
+                const pipelines = [
+                    { id: 1, name: '测试流水线 1' },
+                    { id: 2, name: '测试流水线 2' }
+                ];
+                
+                pipelines.forEach(pipeline => {
+                    const option = document.createElement('option');
+                    option.value = pipeline.id;
+                    option.textContent = pipeline.name;
+                    pipelineSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('加载流水线失败:', error);
+            // 模拟流水线数据
+            const pipelineSelect = document.getElementById('jobPipeline');
+            pipelineSelect.innerHTML = '<option value="">选择流水线</option>';
+            
+            const pipelines = [
+                { id: 1, name: '测试流水线 1' },
+                { id: 2, name: '测试流水线 2' }
+            ];
+            
+            pipelines.forEach(pipeline => {
+                const option = document.createElement('option');
+                option.value = pipeline.id;
+                option.textContent = pipeline.name;
+                pipelineSelect.appendChild(option);
+            });
+        }
+    }
+    
+    // 保存 Jenkins 任务
+    async function saveJenkinsJob() {
+        try {
+            const form = document.getElementById('addJenkinsJobForm');
+            const formData = new FormData(form);
+            
+            // 构建请求数据
+            const data = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                jenkins_url: formData.get('jenkins_url'),
+                credential: formData.get('credential'),
+                pipeline: formData.get('pipeline') || null
+            };
+            
+            // 发送 POST 请求到 API 保存任务
+            const response = await fetch('/api/cicd/jenkins-jobs/create/', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                alert('Jenkins 任务添加成功');
+                document.getElementById('addJenkinsJobModal').querySelector('.btn-close').click();
+                loadJenkinsJobs();
+            } else {
+                alert('Jenkins 任务添加失败: ' + (result.message || '未知错误'));
+            }
+        } catch (error) {
+            console.error('保存 Jenkins 任务失败:', error);
+            alert('保存 Jenkins 任务失败');
+        }
+    }
+    
+    // 解析 Jenkins 任务
+    async function parseJenkinsJob(jobId) {
+        try {
+            const modal = new bootstrap.Modal(document.getElementById('parseJenkinsJobModal'));
+            modal.show();
+            
+            document.getElementById('parseJobLoading').classList.remove('d-none');
+            document.getElementById('parseJobResult').classList.add('d-none');
+            
+            const response = await fetch('/api/cicd/parse-jenkins-job/', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ jenkins_job_id: jobId })
+            });
+            
+            const data = await response.json();
+            
+            document.getElementById('parseJobLoading').classList.add('d-none');
+            document.getElementById('parseJobResult').classList.remove('d-none');
+            
+            if (data.status === 'success') {
+                const parametersList = document.getElementById('jobParametersList');
+                parametersList.innerHTML = '';
+                
+                if (data.parameters.length > 0) {
+                    const table = document.createElement('table');
+                    table.className = 'table table-sm';
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>参数名称</th>
+                                <th>显示名称</th>
+                                <th>类型</th>
+                                <th>默认值</th>
+                                <th>描述</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    `;
+                    
+                    const tbody = table.querySelector('tbody');
+                    data.parameters.forEach(param => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${param.name}</td>
+                                <td>${param.display_name || param.name}</td>
+                                <td>${param.type}</td>
+                                <td>${param.default_value || '-'}</td>
+                                <td>${param.description || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    parametersList.appendChild(table);
+                } else {
+                    parametersList.innerHTML = '<p class="text-muted">该任务没有参数</p>';
+                }
+            } else {
+                alert('解析 Jenkins 任务失败');
+            }
+        } catch (error) {
+            console.error('解析 Jenkins 任务失败:', error);
+            alert('解析 Jenkins 任务失败');
+        }
+    }
+    
+    // 打开构建模态框
+    async function openBuildModal(jobId) {
+        try {
+            const response = await fetch(`/api/cicd/jenkins-job-parameters/${jobId}/`, {
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const modal = new bootstrap.Modal(document.getElementById('jenkinsBuildModal'));
+                modal.show();
+                
+                // 设置任务 ID
+                document.getElementById('buildJobId').value = jobId;
+                
+                // 渲染参数表单
+                const parametersList = document.getElementById('buildParametersList');
+                parametersList.innerHTML = '';
+                
+                if (data.parameters.length > 0) {
+                    data.parameters.forEach(param => {
+                        let paramHtml = '';
+                        
+                        if (param.parameter_type === 'ChoiceParameterDefinition') {
+                            // 下拉选择框
+                            paramHtml = `
+                                <div class="mb-3">
+                                    <label for="param_${param.name}" class="form-label">${param.display_name || param.name}${param.is_required ? ' *' : ''}</label>
+                                    <select class="form-select" id="param_${param.name}" name="${param.name}" ${param.is_required ? 'required' : ''}>
+                                        <option value="">选择${param.display_name || param.name}</option>
+                            `;
+                            
+                            param.choices.forEach(choice => {
+                                paramHtml += `<option value="${choice}" ${param.default_value === choice ? 'selected' : ''}>${choice}</option>`;
+                            });
+                            
+                            paramHtml += `
+                                    </select>
+                                    ${param.description ? `<div class="form-text">${param.description}</div>` : ''}
+                                </div>
+                            `;
+                        } else if (param.parameter_type === 'BooleanParameterDefinition') {
+                            // 布尔值选择
+                            paramHtml = `
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="param_${param.name}" name="${param.name}" ${param.default_value === 'true' ? 'checked' : ''}>
+                                        <label class="form-check-label" for="param_${param.name}">
+                                            ${param.display_name || param.name}${param.is_required ? ' *' : ''}
+                                        </label>
+                                        ${param.description ? `<div class="form-text">${param.description}</div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // 文本输入框
+                            paramHtml = `
+                                <div class="mb-3">
+                                    <label for="param_${param.name}" class="form-label">${param.display_name || param.name}${param.is_required ? ' *' : ''}</label>
+                                    <input type="text" class="form-control" id="param_${param.name}" name="${param.name}" value="${param.default_value || ''}" ${param.is_required ? 'required' : ''}>
+                                    ${param.description ? `<div class="form-text">${param.description}</div>` : ''}
+                                </div>
+                            `;
+                        }
+                        
+                        parametersList.innerHTML += paramHtml;
+                    });
+                } else {
+                    parametersList.innerHTML = '<p class="text-muted">该任务没有参数，直接触发构建</p>';
+                }
+            } else {
+                alert('获取 Jenkins 任务参数失败');
+            }
+        } catch (error) {
+            console.error('获取 Jenkins 任务参数失败:', error);
+            alert('获取 Jenkins 任务参数失败');
+        }
+    }
+    
+    // 触发 Jenkins 构建
+    async function triggerJenkinsBuild() {
+        try {
+            const form = document.getElementById('jenkinsBuildForm');
+            const formData = new FormData(form);
+            
+            // 构建参数对象
+            const parameters = {};
+            formData.forEach((value, key) => {
+                if (key !== 'jenkins_job_id') {
+                    parameters[key] = value;
+                }
+            });
+            
+            const jenkinsJobId = formData.get('jenkins_job_id');
+            
+            const response = await fetch('/api/cicd/trigger-jenkins-build/', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    jenkins_job_id: jenkinsJobId,
+                    parameters: parameters
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                alert('Jenkins 构建已触发，构建编号: ' + data.jenkins_build_number);
+                document.getElementById('jenkinsBuildModal').querySelector('.btn-close').click();
+                // 跳转到构建详情页面
+                viewJenkinsBuildDetail(data.build_id);
+            } else {
+                alert('触发 Jenkins 构建失败: ' + (data.message || '未知错误'));
+            }
+        } catch (error) {
+            console.error('触发 Jenkins 构建失败:', error);
+            alert('触发 Jenkins 构建失败');
+        }
+    }
+    
+    // 查看任务构建历史
+    async function viewJobBuilds(jobId) {
+        try {
+            const response = await fetch(`/api/cicd/jenkins-build-history/?jenkins_job_id=${jobId}`, {
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // 这里可以显示构建历史列表
+                // 由于是示例，这里只显示第一个构建的详情
+                if (data.builds.length > 0) {
+                    viewJenkinsBuildDetail(data.builds[0].build_id);
+                } else {
+                    alert('该任务没有构建历史');
+                }
+            } else {
+                alert('获取构建历史失败');
+            }
+        } catch (error) {
+            console.error('获取构建历史失败:', error);
+            alert('获取构建历史失败');
+        }
+    }
+    
+    // 查看 Jenkins 构建详情
+    async function viewJenkinsBuildDetail(buildId) {
+        try {
+            const response = await fetch(`/api/cicd/jenkins-build-detail/${buildId}/`, {
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const modal = new bootstrap.Modal(document.getElementById('jenkinsBuildDetailModal'));
+                modal.show();
+                
+                // 填充构建详情
+                document.getElementById('detailBuildId').textContent = data.build.build_id;
+                document.getElementById('detailJenkinsJob').textContent = data.build.jenkins_job;
+                document.getElementById('detailBuildNumber').textContent = data.build.jenkins_build_number;
+                
+                // 设置状态标签
+                updateBuildStatus(data.build);
+                
+                document.getElementById('detailTriggeredBy').textContent = data.build.triggered_by || '系统';
+                document.getElementById('detailStartedAt').textContent = data.build.started_at || '-';
+                document.getElementById('detailFinishedAt').textContent = data.build.finished_at || '-';
+                document.getElementById('detailDuration').textContent = data.build.duration ? `${Math.floor(data.build.duration/60)}m${data.build.duration%60}s` : '-';
+                
+                // 填充参数
+                document.getElementById('detailParameters').textContent = JSON.stringify(data.build.parameters, null, 2);
+                
+                // 填充日志
+                document.getElementById('detailLog').textContent = data.build.log || '无日志信息';
+                
+                // 如果构建正在运行，启动实时更新
+                if (data.build.status === 'running') {
+                    startRealTimeUpdate(buildId);
+                }
+            } else {
+                alert('获取构建详情失败');
+            }
+        } catch (error) {
+            console.error('获取构建详情失败:', error);
+            alert('获取构建详情失败');
+        }
+    }
+    
+    // 更新构建状态
+    function updateBuildStatus(buildData) {
+        // 设置状态标签
+        const statusElement = document.getElementById('detailStatus');
+        let statusClass, statusText;
+        switch(buildData.status) {
+            case 'success':
+                statusClass = 'badge-success';
+                statusText = '成功';
+                break;
+            case 'failed':
+                statusClass = 'badge-danger';
+                statusText = '失败';
+                break;
+            case 'running':
+                statusClass = 'badge-warning';
+                statusText = '运行中';
+                break;
+            case 'pending':
+                statusClass = 'badge-secondary';
+                statusText = '等待中';
+                break;
+            case 'aborted':
+                statusClass = 'badge-info';
+                statusText = '终止';
+                break;
+            default:
+                statusClass = 'badge-secondary';
+                statusText = buildData.status;
+        }
+        statusElement.className = `badge ${statusClass}`;
+        statusElement.textContent = statusText;
+        
+        // 更新时间和时长
+        document.getElementById('detailStartedAt').textContent = buildData.started_at || '-';
+        document.getElementById('detailFinishedAt').textContent = buildData.finished_at || '-';
+        document.getElementById('detailDuration').textContent = buildData.duration ? `${Math.floor(buildData.duration/60)}m${buildData.duration%60}s` : '-';
+        
+        // 更新日志
+        document.getElementById('detailLog').textContent = buildData.log || '无日志信息';
+    }
+    
+    // 实时更新构建详情
+    let realTimeUpdateInterval = null;
+    
+    function startRealTimeUpdate(buildId) {
+        // 清除之前的定时器
+        if (realTimeUpdateInterval) {
+            clearInterval(realTimeUpdateInterval);
+        }
+        
+        // 每3秒更新一次
+        realTimeUpdateInterval = setInterval(async function() {
+            try {
+                const response = await fetch(`/api/cicd/jenkins-build-detail/${buildId}/`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateBuildStatus(data.build);
+                    
+                    // 如果构建已经完成，停止更新
+                    if (data.build.status !== 'running') {
+                        clearInterval(realTimeUpdateInterval);
+                        realTimeUpdateInterval = null;
+                    }
+                }
+            } catch (error) {
+                console.error('实时更新构建详情失败:', error);
+            }
+        }, 3000);
+        
+        // 监听模态框关闭事件，停止更新
+        const modal = document.getElementById('jenkinsBuildDetailModal');
+        modal.addEventListener('hidden.bs.modal', function() {
+            if (realTimeUpdateInterval) {
+                clearInterval(realTimeUpdateInterval);
+                realTimeUpdateInterval = null;
+            }
+        });
+    }
+</script>
+{% endblock %}

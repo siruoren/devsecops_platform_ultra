@@ -41,7 +41,7 @@ def projects(request):
 @login_required
 def versions(request):
     """版本管理视图"""
-    return redirect('/admin/versions/releaseversion/')
+    return render(request, 'versions.html')
 
 
 @login_required
