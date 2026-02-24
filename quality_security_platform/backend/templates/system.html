@@ -114,14 +114,25 @@
             <h5 class="section-title"><i class="fas fa-image me-2"></i>企业图标</h5>
             <div class="mb-3">
                 <label class="form-label">上传图标</label>
-                <input type="file" id="logoFile" class="form-control" accept="image/*">
+                <div class="border-2 border-dashed border-primary rounded p-4 text-center" id="dropZone" style="cursor: pointer;">
+                    <input type="file" id="logoFile" class="form-control" accept="image/*" style="display: none;">
+                    <i class="fas fa-cloud-upload-alt text-primary mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted">点击或拖拽文件到此处上传</p>
+                    <p class="text-xs text-muted">支持 PNG、JPG、JPEG 格式，最大 5MB</p>
+                    <div id="fileInfo" class="mt-2 text-left"></div>
+                </div>
             </div>
             <div class="mb-3">
                 <img id="logoPreview" src="" alt="企业图标预览" class="img-thumbnail" style="max-width: 200px; display: none;">
             </div>
             <div class="d-flex gap-2">
-                <button class="btn btn-primary" onclick="uploadLogo()">上传</button>
+                <button class="btn btn-primary" onclick="uploadLogo()" id="uploadBtn">上传</button>
                 <button class="btn btn-secondary" onclick="resetLogo()">重置</button>
+            </div>
+            <div class="mt-2">
+                <div id="uploadProgress" class="progress" style="display: none;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -241,47 +252,123 @@ function saveConfig() {
 }
 
 function uploadLogo() {
-    const fileInput = document.getElementById('logoFile');
-    const file = fileInput.files[0];
+    console.log('开始执行uploadLogo函数...');
     
-    if (!file) {
+    // 使用更可靠的方式获取文件输入元素
+    const fileInput = document.getElementById('logoFile');
+    console.log('文件输入元素:', fileInput);
+    
+    if (!fileInput) {
+        console.error('无法找到文件输入元素');
+        alert('无法找到文件输入元素');
+        return;
+    }
+    
+    console.log('文件输入元素值:', fileInput.value);
+    console.log('文件列表:', fileInput.files);
+    console.log('文件数量:', fileInput.files.length);
+    
+    // 检查files属性是否存在
+    if (!fileInput.files) {
+        console.error('文件输入元素没有files属性');
         alert('请选择要上传的文件');
         return;
     }
     
-    console.log('上传文件:', file);
-    const formData = new FormData();
-    formData.append('file', file);
+    // 检查是否选择了文件
+    if (fileInput.files.length === 0) {
+        console.error('没有选择文件');
+        alert('请选择要上传的文件');
+        return;
+    }
     
-    fetch('/api/system/upload-logo/', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
+    const file = fileInput.files[0];
+    console.log('选中的文件:', file);
+    
+    if (!file) {
+        console.error('文件对象为空');
+        alert('请选择要上传的文件');
+        return;
+    }
+    
+    console.log('上传文件详细信息:');
+    console.log('名称:', file.name);
+    console.log('大小:', file.size);
+    console.log('类型:', file.type);
+    console.log('最后修改时间:', file.lastModified);
+    
+    // 创建FormData并添加文件
+    console.log('创建FormData...');
+    const formData = new FormData();
+    console.log('FormData创建成功:', formData);
+    
+    // 添加文件到FormData
+    formData.append('file', file, file.name);
+    console.log('文件已添加到FormData');
+    console.log('FormData是否包含file:', formData.has('file'));
+    
+    // 检查FormData中的内容
+    console.log('FormData内容:');
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+    
+    // 发送请求
+    console.log('开始发送上传请求...');
+    
+    // 先测试后端接口是否可用
+    fetch('/api/system/get-site-settings/?t=' + new Date().getTime())
+    .then(res => {
+        console.log('测试接口响应状态:', res.status);
+        return res.json();
+    })
+    .then(testData => {
+        console.log('测试接口响应数据:', testData);
+        
+        // 测试成功后发送上传请求
+        console.log('测试接口成功，开始发送上传请求...');
+        return fetch('/api/system/upload-logo/', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
     })
     .then(res => {
-        console.log('上传文件响应状态:', res.status);
+        console.log('上传请求响应状态:', res.status);
+        console.log('上传请求响应状态文本:', res.statusText);
         return res.json();
     })
     .then(data => {
-        console.log('上传文件响应数据:', data);
+        console.log('上传请求响应数据:', data);
         if (data.status === 'success') {
+            console.log('上传成功');
             alert('上传成功');
             // 更新logo预览
             const logoPreview = document.getElementById('logoPreview');
-            const logoUrl = `/media/${data.file_path}`;
+            const logoUrl = `/media/${data.file_path}?t=${new Date().getTime()}`;
             logoPreview.src = logoUrl;
             logoPreview.style.display = 'block';
             console.log('更新logo预览:', logoUrl);
             // 重新加载配置，确保表单显示最新值
             loadConfig();
         } else {
+            console.error('上传失败:', data.message);
             alert('上传失败: ' + data.message);
         }
     })
     .catch(err => {
-        console.error('上传文件失败:', err);
+        console.error('上传过程发生错误:', err);
         alert('上传失败: ' + err.message);
     });
+}
+
+// 获取CSRF令牌
+function getCSRFToken() {
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+    return cookieValue;
 }
 
 function resetLogo() {
